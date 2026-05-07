@@ -25,7 +25,7 @@ public class TradeService {
     private final XmlMapper xmlMapper = new XmlMapper();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void process(String xml) {
+    public void process(String xml) throws Exception {
 
         System.out.println("RAW XML = " + xml);
 
@@ -39,24 +39,24 @@ public class TradeService {
         }
 
         // Fetch accounts
-        AccountDTO buyer = accountClient.getAccount(trade.getBuyerAccount());
-        AccountDTO seller = accountClient.getAccount(trade.getSellerAccount());
-        System.out.println(" Buyer = " + buyer);
-        System.out.println(" Seller = " + seller);
+        AccountDTO partyAccount1 = accountClient.getAccount(trade.getPartyAccount1());
+        AccountDTO partyAccount2 = accountClient.getAccount(trade.getPartyAccount2());
+        System.out.println(" Party Account 1 = " + partyAccount1);
+        System.out.println(" Party Account 2 = " + partyAccount2);
 
-        if (buyer == null || seller == null) {
+        if (partyAccount1 == null || partyAccount2 == null) {
             System.out.println(" Skipping → account not found");
-            return;
+            throw new Exception("Account not found");
         }
         // Enrich
         EnrichedTrade enriched = new EnrichedTrade(
                 trade.getTradeId(),
                 trade.getTime(),
                 trade.getAmount(),
-                trade.getBuyerAccount(),
-                trade.getSellerAccount(),
-                buyer,
-                seller
+                trade.getPartyAccount1(),
+                trade.getPartyAccount2(),
+                partyAccount1,
+                partyAccount2
         );
 
         try {

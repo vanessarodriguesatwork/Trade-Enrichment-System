@@ -8,11 +8,11 @@ public class Trade {
     private String tradeId;
     private String time;
     private Double amount;
-    private String buyerAccount;
-    private String sellerAccount;
-    public Trade(String buyerAccount, String sellerAccount, Double amount, String time, String tradeId) {
-        this.buyerAccount = buyerAccount;
-        this.sellerAccount = sellerAccount;
+    private String partyAccount1;
+    private String partyAccount2;
+    public Trade(String partyAccount1, String partyAccount2, Double amount, String time, String tradeId) {
+        this.partyAccount1 = partyAccount1;
+        this.partyAccount2 = partyAccount2;
         this.amount = amount;
         this.time = time;
         this.tradeId = tradeId;
@@ -20,17 +20,17 @@ public class Trade {
     public String getTradeId() {
         return tradeId;
     }
-    public String getBuyerAccount() {
-        return buyerAccount;
+    public String getPartyAccount1() {
+        return partyAccount1;
     }
-    public void setBuyerAccount(String buyerAccount) {
-        this.buyerAccount = buyerAccount;
+    public void setPartyAccount1(String partyAccount1) {
+        this.partyAccount1 = partyAccount1;
     }
-    public String getSellerAccount() {
-        return sellerAccount;
+    public String getPartyAccount2() {
+        return partyAccount2;
     }
-    public void setSellerAccount(String sellerAccount) {
-        this.sellerAccount = sellerAccount;
+    public void setPartyAccount2(String partyAccount2) {
+        this.partyAccount2 = partyAccount2;
     }
     public void setTradeId(String tradeId) {
         this.tradeId = tradeId;

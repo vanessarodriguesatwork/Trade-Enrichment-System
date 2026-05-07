@@ -1,6 +1,7 @@
 package com.example.demo.services;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +36,8 @@ class TradeServiceTest {
                 "<tradeId>T1</tradeId>" +
                 "<time>10:30</time>" +
                 "<amount>5000</amount>" +
-                "<buyerAccount>B001</buyerAccount>" +
-                "<sellerAccount>S001</sellerAccount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
                 "</Trade>";
     }
 
@@ -98,43 +99,44 @@ class TradeServiceTest {
 
     // ========== NULL ACCOUNTS - BUYER ==========
 
-    @Test
-    void testProcess_BuyerNotFound() {
-        when(accountClient.getAccount("B001")).thenReturn(null);
-        when(accountClient.getAccount("S001")).thenReturn(
-                createAccountDTO("S001", "Jane", "USD", "London"));
+@Test
+void testProcess_BuyerNotFound() {
+    when(accountClient.getAccount("B001")).thenReturn(null);
+    when(accountClient.getAccount("S001")).thenReturn(
+            createAccountDTO("S001", "Jane", "USD", "London"));
 
-        tradeService.process(validXml());
+    assertThrows(Exception.class,
+            () -> tradeService.process(validXml()));
 
-        // Should skip — no call to loggingClient
-        verify(loggingClient, never()).send(any());
-    }
+    verify(loggingClient, never()).send(any());
+}
 
-    // ========== NULL ACCOUNTS - SELLER ==========
+// ========== NULL ACCOUNTS - SELLER ==========
 
-    @Test
-    void testProcess_SellerNotFound() {
-        when(accountClient.getAccount("B001")).thenReturn(
-                createAccountDTO("B001", "John", "USD", "NY"));
-        when(accountClient.getAccount("S001")).thenReturn(null);
+@Test
+void testProcess_SellerNotFound() {
+    when(accountClient.getAccount("B001")).thenReturn(
+            createAccountDTO("B001", "John", "USD", "NY"));
+    when(accountClient.getAccount("S001")).thenReturn(null);
 
-        tradeService.process(validXml());
+    assertThrows(Exception.class,
+            () -> tradeService.process(validXml()));
 
-        verify(loggingClient, never()).send(any());
-    }
+    verify(loggingClient, never()).send(any());
+}
 
-    // ========== BOTH NULL ==========
+// ========== BOTH NULL ==========
 
-    @Test
-    void testProcess_BothAccountsNull() {
-        when(accountClient.getAccount("B001")).thenReturn(null);
-        when(accountClient.getAccount("S001")).thenReturn(null);
+@Test
+void testProcess_BothAccountsNull() {
+    when(accountClient.getAccount("B001")).thenReturn(null);
+    when(accountClient.getAccount("S001")).thenReturn(null);
 
-        tradeService.process(validXml());
+    assertThrows(Exception.class,
+            () -> tradeService.process(validXml()));
 
-        verify(loggingClient, never()).send(any());
-    }
-
+    verify(loggingClient, never()).send(any());
+}
     // ========== ACCOUNT CLIENT THROWS ==========
 
     @Test

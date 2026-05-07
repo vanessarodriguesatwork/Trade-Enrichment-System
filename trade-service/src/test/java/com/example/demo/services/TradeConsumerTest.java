@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import com.example.consumers.TradeConsumer;
 import com.example.entities.Trade;
@@ -23,14 +24,17 @@ class TradeConsumerTest {
 
     @Mock
     private TradeService tradeService;
-
+    
+    @Mock
+    private KafkaTemplate<String, String> kafkaTemplate;
+    
     private String validXml() {
         return "<Trade>" +
                 "<tradeId>T1</tradeId>" +
                 "<time>10:30</time>" +
                 "<amount>5000</amount>" +
-                "<buyerAccount>123</buyerAccount>" +
-                "<sellerAccount>456</sellerAccount>" +
+                "<partyAccount1>123</partyAccount1>" +
+                "<partyAccount2>456</partyAccount2>" +
                 "</Trade>";
     }
 
@@ -45,17 +49,17 @@ class TradeConsumerTest {
         verify(tradeService, times(1)).process(validXml());
     }
 
-    // ========== INVALID XML — should catch InvalidXmlException and NOT rethrow ==========
+    // ========== INVALID XML — should rethrow InvalidXmlException ==========
 
     @Test
-    void testConsume_InvalidXml_Skipped() {
+    void testConsume_InvalidXml_Rethrown()throws Exception {
         String badXml = "<bad>xml</bad>";
 
         doThrow(new InvalidXmlException("Invalid XML"))
                 .when(tradeService).process(badXml);
 
-        // Should NOT throw — InvalidXmlException is caught and skipped
-        assertDoesNotThrow(() -> tradeConsumer.consume(badXml));
+        // Should rethrow — InvalidXmlException is not caught
+        assertThrows(InvalidXmlException.class, () -> tradeConsumer.consume(badXml));
 
         verify(tradeService, times(1)).process(badXml);
     }
@@ -63,7 +67,7 @@ class TradeConsumerTest {
     // ========== GENERIC EXCEPTION — should be rethrown for Kafka retry ==========
 
     @Test
-    void testConsume_GenericException_Rethrown() {
+    void testConsume_GenericException_Rethrown()throws Exception {
         String xml = validXml();
 
         doThrow(new RuntimeException("Service down"))
@@ -76,7 +80,7 @@ class TradeConsumerTest {
     // ========== DLT HANDLER ==========
 
     @Test
-    void testHandleDlt() {
+    void testHandleDlt() throws Exception {
         String failedXml = validXml();
         Exception ex = new RuntimeException("All retries exhausted");
 
@@ -94,8 +98,8 @@ class TradeConsumerTest {
         assertEquals("T1", trade.getTradeId());
         assertEquals("10:30", trade.getTime());
         assertEquals(5000.0, trade.getAmount());
-        assertEquals("123", trade.getBuyerAccount());
-        assertEquals("456", trade.getSellerAccount());
+        assertEquals("123", trade.getPartyAccount1());
+        assertEquals("456", trade.getPartyAccount2());
     }
 
     @Test
@@ -104,14 +108,14 @@ class TradeConsumerTest {
         trade.setTradeId("T99");
         trade.setTime("11:00");
         trade.setAmount(9999.0);
-        trade.setBuyerAccount("B1");
-        trade.setSellerAccount("S1");
+        trade.setPartyAccount1("B1");
+        trade.setPartyAccount2("S1");
 
         assertEquals("T99", trade.getTradeId());
         assertEquals("11:00", trade.getTime());
         assertEquals(9999.0, trade.getAmount());
-        assertEquals("B1", trade.getBuyerAccount());
-        assertEquals("S1", trade.getSellerAccount());
+        assertEquals("B1", trade.getPartyAccount1());
+        assertEquals("S1", trade.getPartyAccount2());
     }
 
     @Test
@@ -121,7 +125,7 @@ class TradeConsumerTest {
         assertEquals("T1", trade.getTradeId());
         assertEquals("12:00", trade.getTime());
         assertEquals(100.0, trade.getAmount());
-        assertEquals("B1", trade.getBuyerAccount());
-        assertEquals("S1", trade.getSellerAccount());
+        assertEquals("B1", trade.getPartyAccount1());
+        assertEquals("S1", trade.getPartyAccount2());
     }
 }

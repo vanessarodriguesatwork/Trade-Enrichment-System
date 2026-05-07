@@ -1,0 +1,7 @@
+<trade>
+    <tradeId>TRD-0006</tradeId>
+    <time>2026-05-05T10:10:00Z</time>
+    <amount>4500.5</amount>
+    <partyAccount1>ACC-119</partyAccount1>
+    <partyAccount2>ACC-INVALID</partyAccount2>
+</trade>

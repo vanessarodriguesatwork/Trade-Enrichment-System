@@ -7,22 +7,22 @@ public class EnrichedTrade {
     private String tradeId;
     private String time;
     private Double amount;
-    private String buyerAccount;
-    private String sellerAccount;
-    private AccountDTO buyerAccountDetails;
-    private AccountDTO sellerAccountDetails;
-    
+    private String partyAccount1;
+    private String partyAccount2;
+    private AccountDTO partyAccount1Details;
+    private AccountDTO partyAccount2Details;
+
     public EnrichedTrade() {
     }
 
-    public EnrichedTrade(String tradeId, String time, Double amount, String buyerAccount, String sellerAccount, AccountDTO buyerAccountDetails, AccountDTO sellerAccountDetails) {
+    public EnrichedTrade(String tradeId, String time, Double amount, String partyAccount1, String partyAccount2, AccountDTO partyAccount1Details, AccountDTO partyAccount2Details) {
         this.tradeId = tradeId;
         this.time = time;
         this.amount = amount;
-        this.buyerAccount = buyerAccount;
-        this.sellerAccount = sellerAccount;
-        this.buyerAccountDetails = buyerAccountDetails;
-        this.sellerAccountDetails = sellerAccountDetails;
+        this.partyAccount1 = partyAccount1;
+        this.partyAccount2 = partyAccount2;
+        this.partyAccount1Details = partyAccount1Details;
+        this.partyAccount2Details = partyAccount2Details;
 
     }
 
@@ -50,36 +50,36 @@ public class EnrichedTrade {
         this.amount = amount;
     }
 
-    public String getBuyerAccount() {
-        return buyerAccount;
+    public String getPartyAccount1() {
+        return partyAccount1;
     }
 
-    public void setBuyerAccount(String buyerAccount) {
-        this.buyerAccount = buyerAccount;
+    public void setPartyAccount1(String partyAccount1) {
+        this.partyAccount1 = partyAccount1;
     }
 
-    public String getSellerAccount() {
-        return sellerAccount;
+    public String getPartyAccount2() {
+        return partyAccount2;
     }
 
-    public void setSellerAccount(String sellerAccount) {
-        this.sellerAccount = sellerAccount;
+    public void setPartyAccount2(String partyAccount2) {
+        this.partyAccount2 = partyAccount2;
     }
 
-    public AccountDTO getBuyerAccountDetails() {
-        return buyerAccountDetails;
+    public AccountDTO getPartyAccount1Details() {
+        return partyAccount1Details;
     }
 
-    public void setBuyerAccountDetails(AccountDTO buyerAccountDetails) {
-        this.buyerAccountDetails = buyerAccountDetails;
+    public void setPartyAccount1Details(AccountDTO partyAccount1Details) {
+        this.partyAccount1Details = partyAccount1Details;
     }
 
-    public AccountDTO getSellerAccountDetails() {
-        return sellerAccountDetails;
+    public AccountDTO getPartyAccount2Details() {
+        return partyAccount2Details;
     }
 
-    public void setSellerAccountDetails(AccountDTO sellerAccountDetails) {
-        this.sellerAccountDetails = sellerAccountDetails;
+    public void setPartyAccount2Details(AccountDTO partyAccount2Details) {
+        this.partyAccount2Details = partyAccount2Details;
     }
 
     

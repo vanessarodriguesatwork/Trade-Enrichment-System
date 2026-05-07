@@ -1,0 +1,7 @@
+<trade>
+    <tradeId>TRD-0003</tradeId>
+    <time>2026-05-05T09:55:00Z</time>
+    <amount>600</amount>
+    <partyAccount1>ACC-115</partyAccount1>
+    <partyAccount2>MISSING</partyAccount2>
+</trade>

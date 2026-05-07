@@ -1,0 +1,267 @@
+name: Regression Pack Analyzer
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to analyze (leave empty to auto-detect latest)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  analyze-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------------------------------
+      # 1. Checkout repo with full history (needed for tag diff)
+      # -------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # -------------------------------------------------------
+      # 2. Resolve release tags (latest + previous)
+      # -------------------------------------------------------
+      - name: Resolve release tags
+        id: tags
+        run: |
+          # Get all tags sorted by version number (numeric sort)
+          ALL_TAGS=$(git tag --list --sort=-version:refname)
+          echo "All tags (sorted newest first):"
+          echo "$ALL_TAGS"
+
+          if [ -z "$ALL_TAGS" ]; then
+            echo "::error::No release tags found in the repository"
+            exit 1
+          fi
+
+          # Determine the latest tag
+          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            LATEST_TAG="${{ github.event.inputs.release_tag }}"
+            # Verify the tag exists
+            if ! git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+              echo "::error::Tag '$LATEST_TAG' does not exist"
+              exit 1
+            fi
+          else
+            LATEST_TAG=$(echo "$ALL_TAGS" | head -n 1)
+          fi
+
+          echo "Latest tag: $LATEST_TAG"
+
+          # Find the previous tag (the one right before the latest)
+          PREVIOUS_TAG=""
+          FOUND_LATEST=false
+          while IFS= read -r tag; do
+            if [ "$FOUND_LATEST" = true ]; then
+              PREVIOUS_TAG="$tag"
+              break
+            fi
+            if [ "$tag" = "$LATEST_TAG" ]; then
+              FOUND_LATEST=true
+            fi
+          done <<< "$ALL_TAGS"
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "::error::Could not find a previous tag before '$LATEST_TAG'"
+            exit 1
+          fi
+
+          echo "Previous tag: $PREVIOUS_TAG"
+
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------------
+      # 3. Get commits between tags & extract unique issue IDs
+      # -------------------------------------------------------
+      - name: Extract issue IDs from commits
+        id: issues
+        run: |
+          LATEST_TAG="${{ steps.tags.outputs.latest_tag }}"
+          PREVIOUS_TAG="${{ steps.tags.outputs.previous_tag }}"
+
+          echo "Comparing $PREVIOUS_TAG..$LATEST_TAG"
+
+          # Get commit messages between tags
+          COMMITS=$(git log "$PREVIOUS_TAG".."$LATEST_TAG" --pretty=format:"%s")
+          echo "Commits found:"
+          echo "$COMMITS"
+
+          if [ -z "$COMMITS" ]; then
+            echo "::error::No commits found between $PREVIOUS_TAG and $LATEST_TAG"
+            exit 1
+          fi
+
+          # Parse commit messages: format is "<issue_id> - <description>"
+          # Extract unique issue IDs
+          ISSUE_IDS=$(echo "$COMMITS" | grep -oP '^\d+' | sort -un | tr '\n' ',' | sed 's/,$//')
+          echo "Unique issue IDs: $ISSUE_IDS"
+
+          if [ -z "$ISSUE_IDS" ]; then
+            echo "::error::No issue IDs found in commit messages"
+            exit 1
+          fi
+
+          echo "issue_ids=$ISSUE_IDS" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------------
+      # 4. Fetch issue descriptions from GitHub API
+      # -------------------------------------------------------
+      - name: Fetch issue descriptions
+        id: fetch_issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_IDS="${{ steps.issues.outputs.issue_ids }}"
+          REPO="${{ github.repository }}"
+
+          echo "[]" > /tmp/issues.json
+
+          IFS=',' read -ra IDS <<< "$ISSUE_IDS"
+          for id in "${IDS[@]}"; do
+            echo "Fetching issue #$id..."
+            ISSUE_JSON=$(gh api "repos/$REPO/issues/$id" --jq '{id: .number, title: .title, body: .body, labels: [.labels[].name]}')
+
+            if [ $? -ne 0 ]; then
+              echo "::warning::Failed to fetch issue #$id, skipping"
+              continue
+            fi
+
+            # Append to issues array
+            jq --argjson issue "$ISSUE_JSON" '. += [$issue]' /tmp/issues.json > /tmp/issues_tmp.json
+            mv /tmp/issues_tmp.json /tmp/issues.json
+          done
+
+          echo "Fetched issues:"
+          cat /tmp/issues.json
+
+          ISSUE_COUNT=$(jq length /tmp/issues.json)
+          if [ "$ISSUE_COUNT" -eq 0 ]; then
+            echo "::error::No issues could be fetched"
+            exit 1
+          fi
+
+          echo "issue_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------------
+      # 5. Setup Python & install dependencies
+      # -------------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      # -------------------------------------------------------
+      # 6. Run regression analyzer (agentic flow with Claude)
+      # -------------------------------------------------------
+      - name: Run regression analyzer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RELEASE_TAG: ${{ steps.tags.outputs.latest_tag }}
+          PREVIOUS_TAG: ${{ steps.tags.outputs.previous_tag }}
+        run: |
+          python .github/scripts/regression_analyzer.py \
+            --issues-file /tmp/issues.json \
+            --csv-file system-regression/resources/trade.csv \
+            --trades-dir system-regression/resources/trades \
+            --reports-dir system-regression/reports \
+            --release-tag "$RELEASE_TAG"
+
+      # -------------------------------------------------------
+      # 7. Create branch, commit changes, and raise PR
+      # -------------------------------------------------------
+      - name: Create branch and commit changes
+        id: commit
+        run: |
+          LATEST_TAG="${{ steps.tags.outputs.latest_tag }}"
+          BRANCH_NAME="regression/$LATEST_TAG"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH_NAME"
+
+          git add system-regression/
+
+          # Check if there are changes to commit
+          if git diff --cached --quiet; then
+            echo "::warning::No changes detected in regression pack"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git commit -m "Regression pack update for release $LATEST_TAG
+
+          Auto-generated by Regression Pack Analyzer workflow.
+          Release: $LATEST_TAG (compared against ${{ steps.tags.outputs.previous_tag }})
+          Issues analyzed: ${{ steps.issues.outputs.issue_ids }}"
+
+          git push origin "$BRANCH_NAME"
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST_TAG="${{ steps.tags.outputs.latest_tag }}"
+          PREVIOUS_TAG="${{ steps.tags.outputs.previous_tag }}"
+          BRANCH_NAME="${{ steps.commit.outputs.branch_name }}"
+          ISSUE_IDS="${{ steps.issues.outputs.issue_ids }}"
+
+          # Build issue references for PR body
+          ISSUE_LINKS=""
+          IFS=',' read -ra IDS <<< "$ISSUE_IDS"
+          for id in "${IDS[@]}"; do
+            ISSUE_LINKS="$ISSUE_LINKS- Closes #$id\n"
+          done
+
+          PR_BODY=$(cat <<EOF
+          ## Regression Pack Update — Release $LATEST_TAG
+
+          ### Summary
+          This PR was **auto-generated** by the Regression Pack Analyzer workflow.
+
+          **Release:** \`$LATEST_TAG\` (compared against \`$PREVIOUS_TAG\`)
+
+          ### Issues Analyzed
+          $(IFS=','; for id in ${IDS[@]}; do echo "- #$id"; done)
+
+          ### Changes
+          - Updated \`system-regression/resources/trade.csv\`
+          - Updated/created trade XML files in \`system-regression/resources/trades/\`
+          - Generated traceability report: \`system-regression/reports/report-${LATEST_TAG}.html\`
+
+          ### How to Review
+          1. Open the HTML report for a visual summary of all changes
+          2. Review CSV changes for correctness of test scenarios
+          3. Review XML files for valid trade payloads
+
+          ---
+          *Auto-generated by the Regression Pack Analyzer agentic workflow*
+          EOF
+          )
+
+          gh pr create \
+            --base master \
+            --head "$BRANCH_NAME" \
+            --title "Regression Pack Update — Release $LATEST_TAG" \
+            --body "$PR_BODY"
