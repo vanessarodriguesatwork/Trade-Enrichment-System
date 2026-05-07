@@ -35,7 +35,7 @@ class EnrichedTradeTest {
         seller.setCurrency("EUR");
         seller.setBranch("London");
 
-        EnrichedTrade trade = new EnrichedTrade("T1", "10:30", 5000.0, "B1", "S1", buyer, seller);
+        EnrichedTrade trade = new EnrichedTrade("T1", "10:30", 5000.0, "B1", "S1", buyer, seller, "B");
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("10:30", trade.getTime());
@@ -44,6 +44,8 @@ class EnrichedTradeTest {
         assertEquals("S1", trade.getPartyAccount2());
         assertEquals(buyer, trade.getPartyAccount1Details());
         assertEquals(seller, trade.getPartyAccount2Details());
+        assertEquals("B", trade.getBuyerSellerIndicator());
+
     }
 
     @Test

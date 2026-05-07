@@ -120,7 +120,7 @@ class TradeConsumerTest {
 
     @Test
     void testTrade_ParameterizedConstructor() {
-        Trade trade = new Trade("B1", "S1", 100.0, "12:00", "T1");
+        Trade trade = new Trade("B1", "S1", 100.0, "12:00", "T1","B");
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("12:00", trade.getTime());
