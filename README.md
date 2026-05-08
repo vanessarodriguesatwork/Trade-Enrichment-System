@@ -62,7 +62,7 @@ graph TD
     KT1 -->|Consume| TS
     
     TS -->|Enriched JSON| KT2[trade-log-topic]
-    TS -->|Failed Retries| DLT[trade-topic-DLT]
+    TS -->|Failed Retries| DLT[trade-dlt]
 ```
 
 | Service | Port | Role |
@@ -87,10 +87,10 @@ sequenceDiagram
     C->>TS: POST /trade/publish (XML)
     TS->>KT: Publish Raw XML
     KT-->>TS: Consume Raw XML
-    TS->>AS: GET Buyer Account
-    AS-->>TS: Buyer Account Details
-    TS->>AS: GET Seller Account
-    AS-->>TS: Seller Account Details
+    TS->>AS: GET Party Account 1
+    AS-->>TS: Party Account 1 Details
+    TS->>AS: GET Party Account 2
+    AS-->>TS: Party Account 2 Details
     TS->>TS: Build EnrichedTrade
     TS->>KTL: Publish EnrichedTrade (JSON)
 ```
@@ -103,7 +103,7 @@ sequenceDiagram
 | **2. Kafka Publish** | `TradeProducerController` publishes the raw XML string to `trade-topic` |
 | **3. Async Consume** | `TradeConsumer` picks up the message via `@KafkaListener` |
 | **4. XML Parse** | `XmlMapper` deserializes the XML string into a `Trade` object |
-| **5. Account Fetch** | `AccountClient` calls `account-service` via REST to get buyer + seller details |
+| **5. Account Fetch** | `AccountClient` calls `account-service` via REST to get partyAccount1 + partyAccount2 details |
 | **6. Enrichment** | `TradeService` builds an `EnrichedTrade` combining trade + account info |
 | **7. Log Publish** | `LoggingClient` serializes and publishes the `EnrichedTrade` (JSON) directly to `trade-log-topic` |
 
@@ -111,13 +111,13 @@ sequenceDiagram
 
 ## 🛡️ Retry & Fault Tolerance Flow
 
-If **any transient error** occurs (e.g., Account Service is down), Kafka automatically retries the message with exponential backoff. After all retries fail, the message is sent to the **Dead Letter Topic (DLT)** for manual inspection.
+If **any transient error** occurs (e.g., Account Service is down), Kafka automatically retries the message with exponential backoff. After all retries fail, the message is sent to the **Dead Letter Topic (trade-dlt)** for manual inspection.
 
 ```mermaid
 sequenceDiagram
     participant KT as trade-topic
     participant TS as Trade Consumer
-    participant DLT as trade-topic-DLT
+    participant DLT as trade-dlt
 
     KT->>TS: Attempt 1
     TS--xTS: Transient Error
@@ -130,7 +130,7 @@ sequenceDiagram
     Note over TS: Wait 20s
     KT->>TS: Attempt 4
     TS--xTS: Transient Error
-    TS->>DLT: Send to DLT (All retries failed)
+    TS->>DLT: Send to trade-dlt (All retries failed)
 ```
 
 **Retry Configuration (`TradeConsumer.java`):**
@@ -141,7 +141,8 @@ sequenceDiagram
     backOff = @BackOff(
         delay = 5000,                     // Initial delay: 5 seconds
         multiplier = 2                    // Exponential: 5s → 10s → 20s
-    )
+    ),
+    dltTopicSuffix = "-dlt"               // Overrides default -DLT suffix → trade-dlt
 )
 @KafkaListener(topics = "${topic.trade}", groupId = "trade-group")
 public void consume(String xml) { ... }
@@ -149,7 +150,7 @@ public void consume(String xml) { ... }
 @DltHandler
 public void handleDlt(String xml, Exception ex) {
     // Called when ALL retries are exhausted
-    System.out.println("MESSAGE SENT TO DLT (All retries failed)");
+    System.out.println("MESSAGE SENT TO trade-dlt (All retries failed)");
 }
 ```
 
@@ -161,14 +162,14 @@ public void handleDlt(String xml, Exception ex) {
 | 2nd | 5 seconds | ~5s | `RecoverableException` thrown |
 | 3rd | 10 seconds | ~15s | `RecoverableException` thrown |
 | 4th | 20 seconds | ~35s | `RecoverableException` thrown |
-| → **DLT** | — | ~35s | All 4 attempts failed |
+| → **trade-dlt** | — | ~35s | All 4 attempts failed |
 
 **Exception Routing:**
 
 | Exception | Retry? | Outcome |
 |---|---|---|
 | `InvalidXmlException` | ❌ No | Message silently **skipped** |
-| `RecoverableException` | ✅ Yes | Retried up to 4x, then **→ DLT** |
+| `RecoverableException` | ✅ Yes | Retried up to 4x, then **→ trade-dlt** |
 | `HttpClientErrorException` (4xx) | ❌ No | Account not found → processing **skipped** |
 | `ResourceAccessException` | ✅ Yes | Network issue → `RecoverableException` → **retry** |
 | `HttpServerErrorException` (5xx) | ✅ Yes | Server issue → `RecoverableException` → **retry** |
@@ -233,10 +234,10 @@ com.example/
 | Topic | Producer | Consumer | Message Format | Purpose |
 |---|---|---|---|---|
 | `trade-topic` | `TradeProducerController` | `TradeConsumer` | Raw XML `String` | Carries raw trade data for async processing |
-| `trade-topic-DLT` | Kafka (auto-created) | `@DltHandler` | Raw XML `String` | Holds trades that failed all retry attempts |
+| `trade-dlt` | Kafka (auto-created) | `@DltHandler` | Raw XML `String` | Holds trades that failed all retry attempts |
 | `trade-log-topic` | `LoggingClient` | *(downstream consumers)* | JSON `EnrichedTrade` | Permanent audit trail of all processed trades |
 
-> **Note:** `trade-topic-DLT` is **automatically created** by Spring Kafka when using `@RetryableTopic`. You don't need to create it manually.
+> **Note:** `trade-dlt` is **automatically created** by Spring Kafka when using `@RetryableTopic`. You don't need to create it manually.
 
 ---
 
@@ -248,8 +249,8 @@ classDiagram
         +String tradeId
         +String time
         +Double amount
-        +String buyerAccount
-        +String sellerAccount
+        +String partyAccount1
+        +String partyAccount2
     }
     class AccountDTO {
         +String accountNumber
@@ -261,10 +262,10 @@ classDiagram
         +String tradeId
         +String time
         +Double amount
-        +String buyerAccount
-        +String sellerAccount
-        +AccountDTO buyerAccountDetails
-        +AccountDTO sellerAccountDetails
+        +String partyAccount1
+        +String partyAccount2
+        +AccountDTO partyAccount1Details
+        +AccountDTO partyAccount2Details
     }
     Trade --> EnrichedTrade : Enriches into
     AccountDTO --* EnrichedTrade : Contains
@@ -277,11 +278,11 @@ Received from the REST client, published as a raw string to Kafka, then parsed b
 ```java
 @JacksonXmlRootElement(localName = "Trade")
 public class Trade {
-    private String tradeId;       // Unique trade identifier
-    private String time;          // Trade timestamp
-    private Double amount;        // Trade amount
-    private String buyerAccount;  // Buyer's account number
-    private String sellerAccount; // Seller's account number
+    private String tradeId;        // Unique trade identifier
+    private String time;           // Trade timestamp
+    private Double amount;         // Trade amount
+    private String partyAccount1;  // Party 1's account number
+    private String partyAccount2;  // Party 2's account number
 }
 ```
 
@@ -291,8 +292,8 @@ public class Trade {
     <tradeId>TRD-20240402-001</tradeId>
     <time>2024-04-02T10:30:00Z</time>
     <amount>15000.00</amount>
-    <buyerAccount>ACC-BUYER-001</buyerAccount>
-    <sellerAccount>ACC-SELLER-002</sellerAccount>
+    <partyAccount1>ACC-PARTY1-001</partyAccount1>
+    <partyAccount2>ACC-PARTY2-002</partyAccount2>
 </Trade>
 ```
 
@@ -302,7 +303,7 @@ public class Trade {
 
 ```java
 public class AccountDTO {
-    private String accountNumber; // e.g., "ACC-BUYER-001"
+    private String accountNumber; // e.g., "ACC-PARTY1-001"
     private String holderName;    // e.g., "John Doe"
     private String currency;      // e.g., "USD"
     private String branch;        // e.g., "New York HQ"
@@ -320,10 +321,10 @@ public class EnrichedTrade {
     private String tradeId;
     private String time;
     private Double amount;
-    private String buyerAccount;
-    private String sellerAccount;
-    private AccountDTO buyerAccountDetails;   // Full buyer info
-    private AccountDTO sellerAccountDetails;  // Full seller info
+    private String partyAccount1;
+    private String partyAccount2;
+    private AccountDTO partyAccount1Details;  // Full party 1 info
+    private AccountDTO partyAccount2Details;  // Full party 2 info
 }
 ```
 
@@ -333,16 +334,16 @@ public class EnrichedTrade {
   "tradeId": "TRD-20240402-001",
   "time": "2024-04-02T10:30:00Z",
   "amount": 15000.00,
-  "buyerAccount": "ACC-BUYER-001",
-  "sellerAccount": "ACC-SELLER-002",
-  "buyerAccountDetails": {
-    "accountNumber": "ACC-BUYER-001",
+  "partyAccount1": "ACC-PARTY1-001",
+  "partyAccount2": "ACC-PARTY2-002",
+  "partyAccount1Details": {
+    "accountNumber": "ACC-PARTY1-001",
     "holderName": "John Doe",
     "currency": "USD",
     "branch": "New York HQ"
   },
-  "sellerAccountDetails": {
-    "accountNumber": "ACC-SELLER-002",
+  "partyAccount2Details": {
+    "accountNumber": "ACC-PARTY2-002",
     "holderName": "Jane Smith",
     "currency": "USD",
     "branch": "London Office"
@@ -369,7 +370,7 @@ public class EnrichedTrade {
 curl -X POST http://localhost:8085/accounts \
   -H "Content-Type: application/json" \
   -d '{
-    "accountNumber": "ACC-BUYER-001",
+    "accountNumber": "ACC-PARTY1-001",
     "holderName": "John Doe",
     "currency": "USD",
     "branch": "New York HQ"
@@ -392,8 +393,8 @@ curl -X POST http://localhost:8086/trade/publish \
         <tradeId>TRD-001</tradeId>
         <time>2024-04-02T10:30:00Z</time>
         <amount>15000.00</amount>
-        <buyerAccount>ACC-BUYER-001</buyerAccount>
-        <sellerAccount>ACC-SELLER-002</sellerAccount>
+        <partyAccount1>ACC-PARTY1-001</partyAccount1>
+        <partyAccount2>ACC-PARTY2-002</partyAccount2>
       </Trade>'
 ```
 **Response:** `200 OK` — `"Trade message sent to Kafka!"`
@@ -446,7 +447,7 @@ bin/kafka-topics.sh --create --topic trade-log-topic \
   --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 ```
 
-> `trade-topic-DLT` is created **automatically** by Spring Kafka — no manual step needed.
+> `trade-dlt` is created **automatically** by Spring Kafka — no manual step needed.
 
 ### Setting up the Database
 
@@ -483,15 +484,15 @@ mvn spring-boot:run
 ### Step 1 — Seed Accounts
 
 ```bash
-# Create Buyer Account
+# Create Party 1 Account
 curl -X POST http://localhost:8085/accounts \
   -H "Content-Type: application/json" \
-  -d '{"accountNumber":"ACC-BUYER-001","holderName":"John Doe","currency":"USD","branch":"New York HQ"}'
+  -d '{"accountNumber":"ACC-PARTY1-001","holderName":"John Doe","currency":"USD","branch":"New York HQ"}'
 
-# Create Seller Account
+# Create Party 2 Account
 curl -X POST http://localhost:8085/accounts \
   -H "Content-Type: application/json" \
-  -d '{"accountNumber":"ACC-SELLER-002","holderName":"Jane Smith","currency":"USD","branch":"London Office"}'
+  -d '{"accountNumber":"ACC-PARTY2-002","holderName":"Jane Smith","currency":"USD","branch":"London Office"}'
 
 # Verify
 curl http://localhost:8085/accounts
@@ -506,8 +507,8 @@ curl -X POST http://localhost:8086/trade/publish \
         <tradeId>TRD-20240402-001</tradeId>
         <time>2024-04-02T10:30:00Z</time>
         <amount>15000.00</amount>
-        <buyerAccount>ACC-BUYER-001</buyerAccount>
-        <sellerAccount>ACC-SELLER-002</sellerAccount>
+        <partyAccount1>ACC-PARTY1-001</partyAccount1>
+        <partyAccount2>ACC-PARTY2-002</partyAccount2>
       </Trade>'
 ```
 
@@ -517,16 +518,16 @@ curl -X POST http://localhost:8086/trade/publish \
 ```
 MESSAGE RECEIVED
 RAW XML = <Trade>...</Trade>
-Calling account service for: ACC-BUYER-001
-Calling account service for: ACC-SELLER-002
-Buyer = AccountDTO{holderName='John Doe', ...}
-Seller = AccountDTO{holderName='Jane Smith', ...}
+Calling account service for: ACC-PARTY1-001
+Calling account service for: ACC-PARTY2-002
+Party 1 = AccountDTO{holderName='John Doe', ...}
+Party 2 = AccountDTO{holderName='Jane Smith', ...}
 ENRICHED TRADE =
 {
   "tradeId": "TRD-20240402-001",
   "amount": 15000.0,
-  "buyerAccountDetails": { "holderName": "John Doe", ... },
-  "sellerAccountDetails": { "holderName": "Jane Smith", ... }
+  "partyAccount1Details": { "holderName": "John Doe", ... },
+  "partyAccount2Details": { "holderName": "Jane Smith", ... }
 }
 Sent to Logging Service
 ```
@@ -540,7 +541,7 @@ MESSAGE RECEIVED          # Attempt 1  (t=0s)
 MESSAGE RECEIVED          # Attempt 2  (t=5s)
 MESSAGE RECEIVED          # Attempt 3  (t=15s)
 MESSAGE RECEIVED          # Attempt 4  (t=35s)
-MESSAGE SENT TO DLT (All retries failed)
+MESSAGE SENT TO trade-dlt (All retries failed)
 Message: <Trade>...</Trade>
 ```
 
@@ -557,7 +558,7 @@ kafka-console-consumer.sh --bootstrap-server localhost:9092 \
 
 # Watch dead letters
 kafka-console-consumer.sh --bootstrap-server localhost:9092 \
-  --topic trade-topic-DLT --from-beginning
+  --topic trade-dlt --from-beginning
 ```
 
 ---
