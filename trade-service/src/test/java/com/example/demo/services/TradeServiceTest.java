@@ -2,7 +2,10 @@ package com.example.demo.services;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,9 +32,17 @@ class TradeServiceTest {
 
     @Mock
     private AmountTruncationService amountTruncationService;
+
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
+
+        // Default stub: any amount string → a valid BigDecimal.
+        // Without this, Mockito returns null for the unstubbed mock, causing
+        // NPEs or a null amount on EnrichedTrade in every test that reaches
+        // the truncation step.
+        when(amountTruncationService.truncateToTwoDecimalPlaces(anyString()))
+                .thenReturn(new BigDecimal("5000.00"));
     }
 
     private String validXml() {
@@ -68,6 +79,8 @@ class TradeServiceTest {
 
         verify(accountClient).getAccount("B001");
         verify(accountClient).getAccount("S001");
+        // Confirm the raw amount string from the XML was handed to truncation
+        verify(amountTruncationService).truncateToTwoDecimalPlaces("5000");
         verify(loggingClient).send(any(EnrichedTrade.class));
     }
 
@@ -82,6 +95,8 @@ class TradeServiceTest {
 
         verify(accountClient, never()).getAccount(any());
         verify(loggingClient, never()).send(any());
+        // Parsing fails before truncation is ever reached
+        verify(amountTruncationService, never()).truncateToTwoDecimalPlaces(any());
     }
 
     @Test
@@ -90,6 +105,7 @@ class TradeServiceTest {
                 () -> tradeService.process(""));
 
         verify(accountClient, never()).getAccount(any());
+        verify(amountTruncationService, never()).truncateToTwoDecimalPlaces(any());
     }
 
     @Test
@@ -98,48 +114,51 @@ class TradeServiceTest {
 
         assertThrows(InvalidXmlException.class,
                 () -> tradeService.process(malformed));
+
+        verify(amountTruncationService, never()).truncateToTwoDecimalPlaces(any());
     }
 
     // ========== NULL ACCOUNTS - BUYER ==========
 
-@Test
-void testProcess_BuyerNotFound() {
-    when(accountClient.getAccount("B001")).thenReturn(null);
-    when(accountClient.getAccount("S001")).thenReturn(
-            createAccountDTO("S001", "Jane", "USD", "London"));
+    @Test
+    void testProcess_BuyerNotFound() {
+        when(accountClient.getAccount("B001")).thenReturn(null);
+        when(accountClient.getAccount("S001")).thenReturn(
+                createAccountDTO("S001", "Jane", "USD", "London"));
 
-    assertThrows(Exception.class,
-            () -> tradeService.process(validXml()));
+        assertThrows(Exception.class,
+                () -> tradeService.process(validXml()));
 
-    verify(loggingClient, never()).send(any());
-}
+        verify(loggingClient, never()).send(any());
+    }
 
-// ========== NULL ACCOUNTS - SELLER ==========
+    // ========== NULL ACCOUNTS - SELLER ==========
 
-@Test
-void testProcess_SellerNotFound() {
-    when(accountClient.getAccount("B001")).thenReturn(
-            createAccountDTO("B001", "John", "USD", "NY"));
-    when(accountClient.getAccount("S001")).thenReturn(null);
+    @Test
+    void testProcess_SellerNotFound() {
+        when(accountClient.getAccount("B001")).thenReturn(
+                createAccountDTO("B001", "John", "USD", "NY"));
+        when(accountClient.getAccount("S001")).thenReturn(null);
 
-    assertThrows(Exception.class,
-            () -> tradeService.process(validXml()));
+        assertThrows(Exception.class,
+                () -> tradeService.process(validXml()));
 
-    verify(loggingClient, never()).send(any());
-}
+        verify(loggingClient, never()).send(any());
+    }
 
-// ========== BOTH NULL ==========
+    // ========== BOTH NULL ==========
 
-@Test
-void testProcess_BothAccountsNull() {
-    when(accountClient.getAccount("B001")).thenReturn(null);
-    when(accountClient.getAccount("S001")).thenReturn(null);
+    @Test
+    void testProcess_BothAccountsNull() {
+        when(accountClient.getAccount("B001")).thenReturn(null);
+        when(accountClient.getAccount("S001")).thenReturn(null);
 
-    assertThrows(Exception.class,
-            () -> tradeService.process(validXml()));
+        assertThrows(Exception.class,
+                () -> tradeService.process(validXml()));
 
-    verify(loggingClient, never()).send(any());
-}
+        verify(loggingClient, never()).send(any());
+    }
+
     // ========== ACCOUNT CLIENT THROWS ==========
 
     @Test

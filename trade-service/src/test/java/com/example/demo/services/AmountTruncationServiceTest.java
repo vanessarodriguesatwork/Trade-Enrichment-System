@@ -1,6 +1,7 @@
 package com.example.demo.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 
@@ -75,4 +76,27 @@ class AmountTruncationServiceTest {
         BigDecimal result = service.truncateToTwoDecimalPlaces("0.0049");
         assertEquals(new BigDecimal("0.00"), result);
     }
+    @Test
+        void testTruncate_NullInput() {
+            assertThrows(IllegalArgumentException.class, () -> service.truncateToTwoDecimalPlaces(null));
+        }
+
+    @Test
+        void testTruncate_EmptyInput() {
+            assertThrows(IllegalArgumentException.class, () -> service.truncateToTwoDecimalPlaces(""));
+        }
+        @Test   
+            void testTruncate_InvalidNumericString() {
+        assertThrows(NumberFormatException.class, () -> service.truncateToTwoDecimalPlaces("abc"));
+        }
+        @Test
+            void testTruncate_VeryLargeAmount() {
+            BigDecimal result = service.truncateToTwoDecimalPlaces("999999999999999.9999999999");
+            assertEquals(new BigDecimal("999999999999999.99"), result);
+        }
+        @Test
+            void testTruncate_AlreadyTwoDecimalPlaces() {
+            BigDecimal result = service.truncateToTwoDecimalPlaces("123.45");
+            assertEquals(new BigDecimal("123.45"), result);
+        }
 }
