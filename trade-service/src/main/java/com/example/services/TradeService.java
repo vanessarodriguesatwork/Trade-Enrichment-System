@@ -55,7 +55,7 @@ public class TradeService {
             throw new Exception("Account not found");
         }
         BigDecimal amount = amountTruncationService.truncateToTwoDecimalPlaces(trade.getAmount());
-        // Enrich
+        // Enrich.
         EnrichedTrade enriched = new EnrichedTrade(
                 trade.getTradeId(),
                 trade.getTime(),
