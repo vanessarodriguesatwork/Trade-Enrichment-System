@@ -776,7 +776,6 @@ def main():
     print(f"Prompt size: {len(prompt)} chars")
 
     analysis = call_claude(prompt)
-    # Print full agent response
     print(f"\nFull agent response:\n{json.dumps(analysis, indent=2)}")
 
     print(f"\nAnalysis summary: {analysis.get('analysis_summary', 'N/A')}")
