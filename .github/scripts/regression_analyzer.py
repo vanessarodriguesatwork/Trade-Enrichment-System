@@ -44,14 +44,14 @@ def read_csv_file(csv_path: str) -> list[dict]:
     return rows
 
 
-def write_csv_file(csv_path: str, rows: list[dict]):
+def write_csv_file(csv_path: str, rows: list[dict], headers: list[str] = None):
     """Write list of dicts to tab-delimited CSV."""
+    fieldnames = headers if headers else CSV_HEADERS
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_HEADERS, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t", extrasaction="ignore")
         writer.writeheader()
         for row in rows:
-            # Ensure all headers are present
-            clean_row = {h: row.get(h, "") for h in CSV_HEADERS}
+            clean_row = {h: row.get(h, "") for h in fieldnames}
             writer.writerow(clean_row)
 
 
@@ -134,6 +134,42 @@ You must decide which test cases (CSV rows) need to be MODIFIED, INSERTED, or DE
 11. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.
 12. For rejected/failed test cases, the enriched fields are typically empty.
 
+## CSV COLUMN STRUCTURE
+The CSV columns are divided into two logical groups:
+
+**Group 1 — Test Metadata:**
+- `scenario_id`: Unique test case identifier (TC-XXX)
+- `description`: Human-readable description of the test scenario
+- `trade_id`: Reference to the corresponding input XML file in the trades directory 
+  (e.g., TRD-0001 maps to TRD-0001.xml). This is the ONLY link to the input — 
+  all input data lives in the XML file, NOT in the CSV.
+
+**Group 2 — Expected Kafka Output:**
+ALL remaining columns represent the expected message that should be published 
+to the Kafka output queue after the system processes the input XML trade file.
+- `tradeId`, `time`, `amount`, `partyAccount1`, `partyAccount2`: Core trade fields 
+  expected in the Kafka output message.
+- `partyAccount1_accountNumber`, `partyAccount1_holderName`, `partyAccount1_currency`, 
+  `partyAccount1_branch`: Expected enriched fields for the buyer account in the Kafka output.
+- `partyAccount2_accountNumber`, `partyAccount2_holderName`, `partyAccount2_currency`, 
+  `partyAccount2_branch`: Expected enriched fields for the seller account in the Kafka output.
+- `expected_output`: Overall expected result/status of the trade processing 
+  (e.g., ENRICHED, REJECTED, FAILED).
+
+**The input to the system is ALWAYS the XML file. The CSV only defines what 
+the Kafka output should look like after processing.**
+
+**Adding New Columns:**
+- New columns should ONLY be added to Group 2 (Expected Kafka Output) — 
+  since Group 1 (metadata) is fixed.
+- Add a new column if a GitHub issue introduces a new field that should 
+  appear in the Kafka output message.
+- New column names should follow the existing naming convention: 
+  `partyAccountX_<fieldName>` for account-related fields, or descriptive 
+  camelCase for other fields.
+- When adding new columns, backfill ALL existing rows with "" if not applicable.
+- Always declare new columns in the `new_columns` field of your response.
+
 ## GITHUB ISSUES TO ANALYZE
 {issues_text}
 
@@ -192,6 +228,12 @@ Use this exact structure:
             "scenarios_impacted": ["TC-XXX", "TC-YYY"],
             "coverage_notes": "How each AC is covered"
         }}
+    ],
+    "new_columns": [
+        {{
+            "name": "column_name",
+            "reason": "Why this column is being added, referencing the issue and AC"
+        }}
     ]
 }}
 
@@ -247,8 +289,23 @@ def call_claude(prompt: str) -> dict:
 # ─────────────────────────────────────────────
 # Apply Changes
 # ─────────────────────────────────────────────
-def apply_csv_changes(csv_rows: list[dict], changes: list[dict]) -> list[dict]:
-    """Apply modify/insert/delete changes to CSV rows."""
+def apply_csv_changes(csv_rows: list[dict], changes: list[dict], new_columns: list[dict]) -> tuple[list[dict], list[str]]:
+    """Apply modify/insert/delete changes to CSV rows. Returns updated rows and updated headers."""
+
+    # Build updated headers dynamically
+    headers = list(CSV_HEADERS)
+    for col in new_columns:
+        if col["name"] not in headers:
+            # All new columns are Kafka output fields — always insert before expected_output
+            headers.insert(headers.index("expected_output"), col["name"])
+            print(f"  New column added: {col['name']} — {col['reason']}")
+
+    # Backfill new columns in existing rows
+    for row in csv_rows:
+        for col in new_columns:
+            if col["name"] not in row:
+                row[col["name"]] = ""
+
     # Index rows by scenario_id for quick lookup
     row_index = {row["scenario_id"]: i for i, row in enumerate(csv_rows)}
 
@@ -280,13 +337,9 @@ def apply_csv_changes(csv_rows: list[dict], changes: list[dict]) -> list[dict]:
             else:
                 print(f"  WARNING: Cannot delete {scenario_id} — not found")
 
-    # Remove deleted rows
     csv_rows = [row for row in csv_rows if row.get("scenario_id") not in rows_to_delete]
-
-    # Append inserted rows
     csv_rows.extend(rows_to_insert)
 
-    # Sort by scenario_id
     def sort_key(row):
         sid = row.get("scenario_id", "")
         try:
@@ -295,8 +348,7 @@ def apply_csv_changes(csv_rows: list[dict], changes: list[dict]) -> list[dict]:
             return 9999
     csv_rows.sort(key=sort_key)
 
-    return csv_rows
-
+    return csv_rows, headers
 
 def apply_xml_changes(trades_dir: str, changes: list[dict]):
     """Apply create/modify/delete changes to XML trade files."""
@@ -724,6 +776,8 @@ def main():
     print(f"Prompt size: {len(prompt)} chars")
 
     analysis = call_claude(prompt)
+    # Print full agent response
+    print(f"\nFull agent response:\n{json.dumps(analysis, indent=2)}")
 
     print(f"\nAnalysis summary: {analysis.get('analysis_summary', 'N/A')}")
     print(f"CSV changes: {len(analysis.get('csv_changes', []))}")
@@ -735,10 +789,14 @@ def main():
     print("─" * 60)
 
     csv_changes = analysis.get("csv_changes", [])
-    if csv_changes:
-        csv_rows = apply_csv_changes(csv_rows, csv_changes)
-        write_csv_file(args.csv_file, csv_rows)
+    new_columns = analysis.get("new_columns", [])
+
+    if csv_changes or new_columns:
+        csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
+        write_csv_file(args.csv_file, csv_rows, updated_headers)
         print(f"CSV updated: {len(csv_rows)} total rows")
+        if new_columns:
+            print(f"New columns added: {[col['name'] for col in new_columns]}")
     else:
         print("No CSV changes to apply")
 
