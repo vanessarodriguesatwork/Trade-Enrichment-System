@@ -1,12 +1,14 @@
 package com.example.entities;
 
+import java.math.BigDecimal;
+
 import com.example.dto.AccountDTO;
 
 public class EnrichedTrade {
 
     private String tradeId;
     private String time;
-    private Double amount;
+    private BigDecimal amount;
     private String partyAccount1;
     private String partyAccount2;
     private AccountDTO partyAccount1Details;
@@ -15,7 +17,7 @@ public class EnrichedTrade {
     public EnrichedTrade() {
     }
 
-    public EnrichedTrade(String tradeId, String time, Double amount, String partyAccount1, String partyAccount2, AccountDTO partyAccount1Details, AccountDTO partyAccount2Details, String buyerSellerIndicator) {
+    public EnrichedTrade(String tradeId, String time, BigDecimal amount, String partyAccount1, String partyAccount2, AccountDTO partyAccount1Details, AccountDTO partyAccount2Details, String buyerSellerIndicator) {
         this.tradeId = tradeId;
         this.time = time;
         this.amount = amount;
@@ -42,11 +44,11 @@ public class EnrichedTrade {
         this.time = time;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

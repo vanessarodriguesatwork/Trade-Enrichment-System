@@ -7,11 +7,11 @@ public class Trade {
 
     private String tradeId;
     private String time;
-    private Double amount;
+    private String amount;
     private String partyAccount1;
     private String partyAccount2;
     private String buyerSellerIndicator;
-    public Trade(String partyAccount1, String partyAccount2, Double amount, String time, String tradeId, String buyerSellerIndicator) {
+    public Trade(String partyAccount1, String partyAccount2, String amount, String time, String tradeId, String buyerSellerIndicator) {
         this.partyAccount1 = partyAccount1;
         this.partyAccount2 = partyAccount2;
         this.amount = amount;
@@ -43,10 +43,10 @@ public class Trade {
     public void setTime(String time) {
         this.time = time;
     }
-    public Double getAmount() {
+    public String getAmount() {
         return amount;
     }
-    public void setAmount(Double amount) {
+    public void setAmount(String amount) {
         this.amount = amount;
     }
     public Trade() {
