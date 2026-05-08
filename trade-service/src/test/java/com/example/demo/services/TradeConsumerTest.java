@@ -117,6 +117,7 @@ class TradeConsumerTest {
         assertEquals("B1", trade.getPartyAccount1());
         assertEquals("S1", trade.getPartyAccount2());
     }
+    
 
     @Test
     void testTrade_ParameterizedConstructor() {
