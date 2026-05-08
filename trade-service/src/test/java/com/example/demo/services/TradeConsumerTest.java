@@ -97,7 +97,7 @@ class TradeConsumerTest {
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("10:30", trade.getTime());
-        assertEquals(5000.0, trade.getAmount());
+        assertEquals("5000", trade.getAmount());
         assertEquals("123", trade.getPartyAccount1());
         assertEquals("456", trade.getPartyAccount2());
     }
@@ -107,25 +107,27 @@ class TradeConsumerTest {
         Trade trade = new Trade();
         trade.setTradeId("T99");
         trade.setTime("11:00");
-        trade.setAmount(9999.0);
+        trade.setAmount("9999");
         trade.setPartyAccount1("B1");
         trade.setPartyAccount2("S1");
 
         assertEquals("T99", trade.getTradeId());
         assertEquals("11:00", trade.getTime());
-        assertEquals(9999.0, trade.getAmount());
+        assertEquals("9999", trade.getAmount());
         assertEquals("B1", trade.getPartyAccount1());
         assertEquals("S1", trade.getPartyAccount2());
     }
+    
 
     @Test
     void testTrade_ParameterizedConstructor() {
-        Trade trade = new Trade("B1", "S1", 100.0, "12:00", "T1","B");
+        Trade trade = new Trade("B1", "S1", "100", "12:00", "T1","Buyer");
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("12:00", trade.getTime());
-        assertEquals(100.0, trade.getAmount());
+        assertEquals("100", trade.getAmount());
         assertEquals("B1", trade.getPartyAccount1());
         assertEquals("S1", trade.getPartyAccount2());
+        assertEquals("Buyer", trade.getBuyerSellerIndicator());
     }
 }

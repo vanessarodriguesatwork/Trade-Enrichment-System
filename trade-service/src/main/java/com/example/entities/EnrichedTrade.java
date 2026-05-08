@@ -3,7 +3,6 @@ package com.example.entities;
 import java.math.BigDecimal;
 
 import com.example.dto.AccountDTO;
-
 public class EnrichedTrade {
 
     private String tradeId;

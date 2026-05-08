@@ -167,6 +167,7 @@ jobs:
       - name: Install dependencies
         run: pip install anthropic
 
+      
       # -------------------------------------------------------
       # 6. Run regression analyzer (agentic flow with Claude)
       # -------------------------------------------------------
@@ -182,9 +183,33 @@ jobs:
             --trades-dir system-regression/resources/trades \
             --reports-dir system-regression/reports \
             --release-tag "$RELEASE_TAG"
-
       # -------------------------------------------------------
-      # 7. Create branch, commit changes, and raise PR
+      # 7. Deploy report to Netlify (before PR so URL can be included)
+      # -------------------------------------------------------
+      - name: Prepare report
+        run: |
+          REPORT_FILE=$(find system-regression/reports -name "report-*.html" | head -n 1)
+
+          if [ -z "$REPORT_FILE" ]; then
+            echo "::error::No report HTML found"
+            exit 1
+          fi
+
+          cp "$REPORT_FILE" system-regression/reports/index.html
+
+      - name: Deploy to Netlify
+        id: deploy
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: './system-regression/reports'
+          production-deploy: false
+          deploy-message: "Regression Pack Report Deployment"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      
+      # -------------------------------------------------------
+      # 8. Create branch, commit changes, and raise PR
       # -------------------------------------------------------
       - name: Create branch and commit changes
         id: commit
@@ -226,6 +251,7 @@ jobs:
           PREVIOUS_TAG="${{ steps.tags.outputs.previous_tag }}"
           BRANCH_NAME="${{ steps.commit.outputs.branch_name }}"
           ISSUE_IDS="${{ steps.issues.outputs.issue_ids }}"
+          REPORT_URL="${{ steps.deploy.outputs.deploy-url }}"
 
           # Build issue references for PR body
           ISSUE_LINKS=""
@@ -250,6 +276,9 @@ jobs:
           - Updated/created trade XML files in \`system-regression/resources/trades/\`
           - Generated traceability report: \`system-regression/reports/report-${LATEST_TAG}.html\`
 
+          ### Report
+          [Open Regression Report]($REPORT_URL)
+
           ### How to Review
           1. Open the HTML report for a visual summary of all changes
           2. Review CSV changes for correctness of test scenarios
@@ -261,7 +290,11 @@ jobs:
           )
 
           gh pr create \
-            --base master \
+            --base main \
             --head "$BRANCH_NAME" \
             --title "Regression Pack Update — Release $LATEST_TAG" \
             --body "$PR_BODY"
+    
+      - name: Add Report Link to Summary
+        run: |
+          echo " [Open Regression Report](${{ steps.deploy.outputs.deploy-url }})" >> $GITHUB_STEP_SUMMARY

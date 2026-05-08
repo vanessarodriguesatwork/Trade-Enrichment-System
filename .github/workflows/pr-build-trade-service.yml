@@ -12,7 +12,7 @@ name: PR Build for trade-service
 
 on:
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
     
 permissions:

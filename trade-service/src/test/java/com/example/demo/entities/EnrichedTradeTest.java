@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import com.example.dto.AccountDTO;
 import com.example.entities.EnrichedTrade;
 
+import java.math.BigDecimal;
+
 class EnrichedTradeTest {
 
     @Test
@@ -35,11 +37,11 @@ class EnrichedTradeTest {
         seller.setCurrency("EUR");
         seller.setBranch("London");
 
-        EnrichedTrade trade = new EnrichedTrade("T1", "10:30", 5000.0, "B1", "S1", buyer, seller, "B");
+        EnrichedTrade trade = new EnrichedTrade("T1", "10:30", new BigDecimal("5000.00"), "B1", "S1", buyer, seller, "B");
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("10:30", trade.getTime());
-        assertEquals(5000.0, trade.getAmount());
+        assertEquals(new BigDecimal("5000.00"), trade.getAmount());
         assertEquals("B1", trade.getPartyAccount1());
         assertEquals("S1", trade.getPartyAccount2());
         assertEquals(buyer, trade.getPartyAccount1Details());
@@ -54,7 +56,7 @@ class EnrichedTradeTest {
 
         trade.setTradeId("T99");
         trade.setTime("11:00");
-        trade.setAmount(9999.0);
+        trade.setAmount(new BigDecimal("9999.00"));
         trade.setPartyAccount1("B99");
         trade.setPartyAccount2("S99");
 
@@ -68,7 +70,7 @@ class EnrichedTradeTest {
 
         assertEquals("T99", trade.getTradeId());
         assertEquals("11:00", trade.getTime());
-        assertEquals(9999.0, trade.getAmount());
+        assertEquals(new BigDecimal("9999.00"), trade.getAmount());
         assertEquals("B99", trade.getPartyAccount1());
         assertEquals("S99", trade.getPartyAccount2());
         assertEquals("B99", trade.getPartyAccount1Details().getAccountNumber());
