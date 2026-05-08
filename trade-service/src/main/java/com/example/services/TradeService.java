@@ -25,6 +25,10 @@ public class TradeService {
     @Autowired
     private LoggingClient loggingClient;
 
+    @Autowired
+    private AmountTruncationService amountTruncationService;
+
+
     private final XmlMapper xmlMapper = new XmlMapper();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,8 +55,7 @@ public class TradeService {
             System.out.println(" Skipping → account not found");
             throw new Exception("Account not found");
         }
-        BigDecimal amount = new BigDecimal(trade.getAmount());
-        amount = amount.setScale(2, RoundingMode.DOWN);
+        BigDecimal amount = amountTruncationService.truncateToTwoDecimalPlaces(trade.getAmount());
         // Enrich
         EnrichedTrade enriched = new EnrichedTrade(
                 trade.getTradeId(),

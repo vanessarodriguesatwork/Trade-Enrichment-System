@@ -13,6 +13,7 @@ import com.example.clients.LoggingClient;
 import com.example.dto.AccountDTO;
 import com.example.entities.EnrichedTrade;
 import com.example.exceptions.InvalidXmlException;
+import com.example.services.AmountTruncationService;
 import com.example.services.TradeService;
 
 class TradeServiceTest {
@@ -26,6 +27,8 @@ class TradeServiceTest {
     @Mock
     private LoggingClient loggingClient;
 
+    @Mock
+    private AmountTruncationService amountTruncationService;
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
