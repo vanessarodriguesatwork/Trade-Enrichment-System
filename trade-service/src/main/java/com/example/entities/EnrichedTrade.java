@@ -3,6 +3,7 @@ package com.example.entities;
 import java.math.BigDecimal;
 
 import com.example.dto.AccountDTO;
+import com.fasterxml.jackson.annotation.JsonInclude;
 public class EnrichedTrade {
 
     private String tradeId;
@@ -12,7 +13,9 @@ public class EnrichedTrade {
     private String partyAccount2;
     private AccountDTO partyAccount1Details;
     private AccountDTO partyAccount2Details;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String buyerSellerIndicator;
+    
     public EnrichedTrade() {
     }
 

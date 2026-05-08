@@ -45,12 +45,12 @@ public class TradeService {
         }
 
         // Fetch accounts.
-        AccountDTO buyer = accountClient.getAccount(trade.getPartyAccount1());
-        AccountDTO seller = accountClient.getAccount(trade.getPartyAccount2());
-        System.out.println(" Buyer = " + buyer);
-        System.out.println(" Seller = " + seller);
+        AccountDTO partyAccount1 = accountClient.getAccount(trade.getPartyAccount1());
+        AccountDTO partyAccount2 = accountClient.getAccount(trade.getPartyAccount2());
+        System.out.println(" Party Account 1 = " + partyAccount1);
+        System.out.println(" Party Account 2 = " + partyAccount2);
 
-        if (buyer == null || seller == null) {
+        if (partyAccount1 == null || partyAccount2 == null) {
             System.out.println(" Skipping → account not found");
             throw new Exception("Account not found");
         }
@@ -67,8 +67,8 @@ public class TradeService {
                 amount,
                 trade.getPartyAccount1(),
                 trade.getPartyAccount2(),
-                buyer,
-                seller,
+                partyAccount1,
+                partyAccount2,
                 abbreviatedIndicator
         );
 
@@ -100,11 +100,16 @@ public class TradeService {
      * @return Abbreviated indicator (B, S, or empty string)
      */
     private String abbreviateBuyerSellerIndicator(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null ) {
             // Default to BUYER for backward compatibility
-            return "B";
+            System.out.println("WARN: buyerSellerIndicator tag is missing from trade XML");
+            return null;
         }
-        
+        if( value.trim().isEmpty()){
+            System.out.println("WARN: buyerSellerIndicator tag is blank, defaulting to B");
+            return "S";
+
+        }
         String upperValue = value.trim().toUpperCase();
         
         if ("BUYER".equals(upperValue)) {

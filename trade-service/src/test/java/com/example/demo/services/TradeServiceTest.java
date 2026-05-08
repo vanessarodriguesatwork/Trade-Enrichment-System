@@ -237,26 +237,7 @@ class TradeServiceTest {
         verify(loggingClient).send(any(EnrichedTrade.class));
     }
 
-    @Test
-    void testProcess_BuyerSellerIndicator_MissingField_DefaultsToB()throws Exception {
-        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
-        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
-
-        when(accountClient.getAccount("B001")).thenReturn(buyer);
-        when(accountClient.getAccount("S001")).thenReturn(seller);
-        
-        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
-        doNothing().when(loggingClient).send(captor.capture());
-
-        // Process trade WITHOUT buyerSellerIndicator field
-        tradeService.process(validXml());
-
-        EnrichedTrade enriched = captor.getValue();
-        assertEquals("B", enriched.getBuyerSellerIndicator(), 
-                "Missing buyerSellerIndicator should default to B (backward compatible)");
-        verify(loggingClient).send(any(EnrichedTrade.class));
-    }
-
+    
     @Test
     void testProcess_BuyerSellerIndicator_InvalidValue_EmptyString() throws Exception{
         AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
@@ -312,5 +293,61 @@ class TradeServiceTest {
         EnrichedTrade enriched = captor.getValue();
         assertEquals("S", enriched.getBuyerSellerIndicator(), 
                 "Whitespace-padded 'SELLER' should be converted to S");
+    }
+    // Existing test covers BUYER/SELLER present — add this:
+    @Test
+    void testProcess_MissingBuyerSellerIndicator_FieldOmitted() {
+        // XML with no <buyerSellerIndicator> tag at all
+        String xmlWithoutIndicator = "<Trade>" +
+                "<tradeId>T1</tradeId>" +
+                "<time>10:30</time>" +
+                "<amount>5000</amount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
+                "</Trade>";
+
+        AccountDTO buyer = createAccountDTO("B001", "John", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        doNothing().when(loggingClient).send(any(EnrichedTrade.class));
+
+        assertDoesNotThrow(() -> tradeService.process(xmlWithoutIndicator));
+
+        // Capture what was sent to the logging client
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        verify(loggingClient).send(captor.capture());
+
+        // null means @JsonInclude(NON_NULL) will omit it from JSON output
+        assertNull(captor.getValue().getBuyerSellerIndicator(),
+                "Missing XML tag should result in null field, not 'B'");
+    }
+
+    @Test
+    void testProcess_EmptyBuyerSellerIndicator_DefaultsToBuyer() {
+        String xmlWithEmptyIndicator = "<Trade>" +
+                "<tradeId>T1</tradeId>" +
+                "<time>10:30</time>" +
+                "<amount>5000</amount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
+                "<buyerSellerIndicator></buyerSellerIndicator>" +
+                "</Trade>";
+
+        AccountDTO buyer = createAccountDTO("B001", "John", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        doNothing().when(loggingClient).send(any(EnrichedTrade.class));
+
+        assertDoesNotThrow(() -> tradeService.process(xmlWithEmptyIndicator));
+
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        verify(loggingClient).send(captor.capture());
+
+        assertEquals("S", captor.getValue().getBuyerSellerIndicator(),
+            "Empty tag should default to 'B' for backward compatibility");
     }
 }
