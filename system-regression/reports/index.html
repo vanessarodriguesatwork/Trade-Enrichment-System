@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regression Pack Report — Release 26.02</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fb;
+            color: #2d3748;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .header .meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+        .header .meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-top: 3px solid;
+        }
+        .stat-card.issues { border-color: #667eea; }
+        .stat-card.modified { border-color: #f6ad55; }
+        .stat-card.inserted { border-color: #68d391; }
+        .stat-card.deleted { border-color: #fc8181; }
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+        .stat-card.issues .number { color: #667eea; }
+        .stat-card.modified .number { color: #dd6b20; }
+        .stat-card.inserted .number { color: #38a169; }
+        .stat-card.deleted .number { color: #e53e3e; }
+        .stat-card .label-text {
+            font-size: 0.85rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .section h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #edf2f7;
+            color: #2d3748;
+        }
+        .summary-text {
+            background: #f7fafc;
+            padding: 1rem 1.2rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 0.95rem;
+            color: #4a5568;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: top;
+        }
+        tr:hover {
+            background: #f7fafc;
+        }
+        code {
+            background: #edf2f7;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #553c9a;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-modify {
+            background: #fefcbf;
+            color: #975a16;
+        }
+        .badge-insert {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .badge-delete {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .badge-create {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .label {
+            background: #e2e8f0;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #4a5568;
+        }
+        .ac-cell {
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Regression Pack Analysis Report</h1>
+            <p>Release <strong>26.02</strong></p>
+            <div class="meta">
+                <span>Generated: 2026-05-08 10:47:20 UTC</span>
+                <span>Analyzer: Claude AI (claude-sonnet-4-20250514)</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card issues">
+                <div class="number">1</div>
+                <div class="label-text">Issues Analyzed</div>
+            </div>
+            <div class="stat-card modified">
+                <div class="number">8</div>
+                <div class="label-text">Scenarios Modified</div>
+            </div>
+            <div class="stat-card inserted">
+                <div class="number">5</div>
+                <div class="label-text">Scenarios Added</div>
+            </div>
+            <div class="stat-card deleted">
+                <div class="number">0</div>
+                <div class="label-text">Scenarios Removed</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Analysis Summary</h2>
+            <div class="summary-text">Issue #2 introduces amount truncation rules for trade amounts. Need to modify existing test cases to reflect the new expected output format (amounts truncated to 2 decimal places) and insert new test cases to cover specific truncation scenarios like padding with zeros, truncating extra decimals, and handling negative amounts.</div>
+        </div>
+
+        <div class="section">
+            <h2>Issues Analyzed</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:80px">Issue</th>
+                        <th>Title</th>
+                        <th style="width:120px">Labels</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td><strong>#2</strong></td>
+            <td>Add Amount Truncation for Trade Amount Precision</td>
+            <td><span class="label">—</span></td>
+        </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>CSV Changes (Test Scenarios)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:100px">Action</th>
+                        <th style="width:100px">Scenario</th>
+                        <th style="width:80px">Issue</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-006</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 2200.00 instead of 2200 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-007</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 3000.00 instead of 3000 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-008</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 4500.50 instead of 4500.5 per AC2 and AC4</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-009</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 2200.00 instead of 2200 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-011</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 1100.00 instead of 1100 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-013</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 900.00 instead of 900 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-020</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 3300.00 instead of 3300 per AC2 and AC5</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-021</code></td>
+            <td>#2</td>
+            <td>Update expected amount format to show 2800.50 instead of 2800.5 per AC2 and AC4</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-insert">INSERT</span></td>
+            <td><code>TC-022</code></td>
+            <td>#2</td>
+            <td>Test amount truncation with more than 2 decimal places to cover AC1, AC3, AC6</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-insert">INSERT</span></td>
+            <td><code>TC-023</code></td>
+            <td>#2</td>
+            <td>Test amount truncation with exactly 3 decimal places to cover AC1, AC3, AC6</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-insert">INSERT</span></td>
+            <td><code>TC-024</code></td>
+            <td>#2</td>
+            <td>Test amount formatting with 1 decimal place to cover AC2, AC4</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-insert">INSERT</span></td>
+            <td><code>TC-025</code></td>
+            <td>#2</td>
+            <td>Test negative amount truncation to cover AC8</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-insert">INSERT</span></td>
+            <td><code>TC-026</code></td>
+            <td>#2</td>
+            <td>Test zero amount formatting to cover AC8</td>
+        </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>XML Trade File Changes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:100px">Action</th>
+                        <th style="width:180px">File</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td><span class="badge badge-create">CREATE</span></td>
+            <td><code>TRD-0019.xml</code></td>
+            <td>New XML file for amount truncation test case with more than 2 decimal places</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-create">CREATE</span></td>
+            <td><code>TRD-0020.xml</code></td>
+            <td>New XML file for amount truncation test case with exactly 3 decimal places</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-create">CREATE</span></td>
+            <td><code>TRD-0021.xml</code></td>
+            <td>New XML file for amount formatting test case with 1 decimal place</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-create">CREATE</span></td>
+            <td><code>TRD-0022.xml</code></td>
+            <td>New XML file for negative amount truncation test case</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-create">CREATE</span></td>
+            <td><code>TRD-0023.xml</code></td>
+            <td>New XML file for zero amount formatting test case</td>
+        </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Traceability Matrix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:70px">Issue</th>
+                        <th style="width:180px">Title</th>
+                        <th>Acceptance Criteria</th>
+                        <th style="width:180px">Scenarios</th>
+                        <th>Coverage Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td><strong>#2</strong></td>
+            <td>Add Amount Truncation for Trade Amount Precision</td>
+            <td class="ac-cell">AC1: The system shall truncate incoming trade amounts to a maximum of two decimal places<br>AC2: The system shall always format the final output to exactly two decimal places<br>AC3: No rounding shall be applied under any circumstance<br>AC4: If the input has fewer than 2 decimal places, the system shall pad with trailing zeros<br>AC5: If the input has no decimal places, the system shall append .00<br>AC6: If the input has more than 2 decimal places, all extra digits shall be discarded after truncation<br>AC7: The formatting shall be consistent across all enriched trade outputs and downstream systems<br>AC8: The system shall support positive, zero, and negative numeric values consistently</td>
+            <td><code>TC-006</code>, <code>TC-007</code>, <code>TC-008</code>, <code>TC-009</code>, <code>TC-011</code>, <code>TC-013</code>, <code>TC-020</code>, <code>TC-021</code>, <code>TC-022</code>, <code>TC-023</code>, <code>TC-024</code>, <code>TC-025</code>, <code>TC-026</code></td>
+            <td>AC1,AC3,AC6 covered by TC-022,TC-023 (truncation without rounding). AC2,AC4 covered by TC-024 (padding single decimal). AC2,AC5 covered by TC-026,TC-007,TC-009,TC-011,TC-013,TC-020 (no decimals to .00). AC7 covered by all modified scenarios showing consistent formatting. AC8 covered by TC-025 (negative), TC-026 (zero), others (positive).</td>
+        </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Auto-generated by Regression Pack Analyzer &middot; Powered by Claude AI &middot; Release 26.02
+        </div>
+    </div>
+</body>
+</html>
