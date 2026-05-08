@@ -182,6 +182,18 @@ jobs:
             --trades-dir system-regression/resources/trades \
             --reports-dir system-regression/reports \
             --release-tag "$RELEASE_TAG"
+      
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy to Netlify
+        id: deploy
+        run: |
+          REPORT_FILE=$(ls system-regression/reports/report-*.html | head -n 1)
+          OUTPUT=$(netlify deploy --dir=system-regression/reports --json)
+          FILENAME=$(basename $REPORT_FILE)
+          URL=$(echo $OUTPUT | jq -r '.deploy_url')
+          echo "deploy_url=${URL}/${FILENAME}" >> $GITHUB_OUTPUT
 
       # -------------------------------------------------------
       # 7. Create branch, commit changes, and raise PR
@@ -226,6 +238,7 @@ jobs:
           PREVIOUS_TAG="${{ steps.tags.outputs.previous_tag }}"
           BRANCH_NAME="${{ steps.commit.outputs.branch_name }}"
           ISSUE_IDS="${{ steps.issues.outputs.issue_ids }}"
+          REPORT_URL="${{ steps.deploy.outputs.deploy_url }}"
 
           # Build issue references for PR body
           ISSUE_LINKS=""
@@ -249,7 +262,10 @@ jobs:
           - Updated \`system-regression/resources/trade.csv\`
           - Updated/created trade XML files in \`system-regression/resources/trades/\`
           - Generated traceability report: \`system-regression/reports/report-${LATEST_TAG}.html\`
-
+          
+          ###  Report
+          [Open Regression Report]($REPORT_URL)
+          
           ### How to Review
           1. Open the HTML report for a visual summary of all changes
           2. Review CSV changes for correctness of test scenarios
@@ -265,3 +281,7 @@ jobs:
             --head "$BRANCH_NAME" \
             --title "Regression Pack Update — Release $LATEST_TAG" \
             --body "$PR_BODY"
+
+      - name: Add Report Link to Summary
+        run: |
+          echo "<a href='${{ steps.deploy.outputs.deploy_url }}' target='_blank'>📊 Open Regression Report</a>" >> $GITHUB_STEP_SUMMARY
