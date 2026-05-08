@@ -38,7 +38,7 @@ public class TradeService {
             throw new InvalidXmlException("Invalid XML");
         }
 
-        // Fetch accounts
+        // Fetch accounts.
         AccountDTO buyer = accountClient.getAccount(trade.getPartyAccount1());
         AccountDTO seller = accountClient.getAccount(trade.getPartyAccount2());
         System.out.println(" Buyer = " + buyer);
