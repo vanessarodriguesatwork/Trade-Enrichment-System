@@ -49,6 +49,8 @@ public class TradeService {
             throw new Exception("Account not found");
         }
         // Enrich
+        String truncatedAmount = truncateToTwoDecimals(trade.getAmount());
+        trade.setAmount(Double.parseDouble(truncatedAmount));
         EnrichedTrade enriched = new EnrichedTrade(
                 trade.getTradeId(),
                 trade.getTime(),
@@ -72,5 +74,14 @@ public class TradeService {
 
         // Send to logging
         loggingClient.send(enriched);
+    }
+    //helper 
+    private String truncateToTwoDecimals(double amount) {
+    // Uses floor for positive, ceil for negative — both truncate toward zero
+       double truncated =  amount >= 0
+            ? Math.floor(amount * 100) / 100
+            : Math.ceil(amount * 100) / 100;
+        return String.format("%.2f", truncated);
+
     }
 }
