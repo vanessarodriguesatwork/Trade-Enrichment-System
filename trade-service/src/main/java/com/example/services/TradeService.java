@@ -1,5 +1,7 @@
 package com.example.services;
 
+import java.math.BigDecimal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,10 @@ public class TradeService {
 
     @Autowired
     private LoggingClient loggingClient;
+
+    @Autowired
+    private AmountTruncationService amountTruncationService;
+
 
     private final XmlMapper xmlMapper = new XmlMapper();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -48,11 +54,12 @@ public class TradeService {
             System.out.println(" Skipping → account not found");
             throw new Exception("Account not found");
         }
+        BigDecimal amount = amountTruncationService.truncateToTwoDecimalPlaces(trade.getAmount());
         // Enrich
         EnrichedTrade enriched = new EnrichedTrade(
                 trade.getTradeId(),
                 trade.getTime(),
-                trade.getAmount(),
+                amount,
                 trade.getPartyAccount1(),
                 trade.getPartyAccount2(),
                 partyAccount1,
@@ -73,4 +80,5 @@ public class TradeService {
         // Send to logging
         loggingClient.send(enriched);
     }
+    
 }
