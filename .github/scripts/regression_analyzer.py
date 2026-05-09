@@ -733,7 +733,124 @@ def generate_html_report(
     report_file.write_text(html, encoding="utf-8")
     print(f"Report generated: {report_file}")
 
+def generate_md_report(
+    release_tag: str,
+    issues: list[dict],
+    analysis: dict,
+    reports_dir: str
+):
+    """Generate a markdown traceability report."""
 
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    summary = analysis.get("analysis_summary", "No summary provided.")
+    csv_changes = analysis.get("csv_changes", [])
+    xml_changes = analysis.get("xml_changes", [])
+    traceability = analysis.get("traceability", [])
+
+    modified_count = sum(1 for c in csv_changes if c['action'] == 'modify')
+    inserted_count = sum(1 for c in csv_changes if c['action'] == 'insert')
+    deleted_count  = sum(1 for c in csv_changes if c['action'] == 'delete')
+
+    lines = []
+
+    # ── Header ──
+    lines.append(f"# Regression Pack Analysis Report — Release {release_tag}")
+    lines.append(f"\n**Generated:** {now}  ")
+    lines.append(f"**Analyzer:** Claude AI ({CLAUDE_MODEL})\n")
+    lines.append("---\n")
+
+    # ── Stats ──
+    lines.append("## Summary Stats\n")
+    lines.append(f"| Issues Analyzed | Scenarios Modified | Scenarios Added | Scenarios Removed |")
+    lines.append(f"|---|---|---|---|")
+    lines.append(f"| {len(issues)} | {modified_count} | {inserted_count} | {deleted_count} |\n")
+
+    # ── Analysis Summary ──
+    lines.append("## Analysis Summary\n")
+    lines.append(f"{summary}\n")
+    lines.append("---\n")
+
+    # ── Issues Analyzed ──
+    lines.append("## Issues Analyzed\n")
+    lines.append("| Issue | Title | Labels |")
+    lines.append("|---|---|---|")
+    for issue in issues:
+        labels = ", ".join(issue.get("labels", [])) or "—"
+        lines.append(f"| #{issue['id']} | {issue['title']} | {labels} |")
+    lines.append("")
+
+    # ── CSV Changes ──
+    lines.append("## CSV Changes (Test Scenarios)\n")
+    lines.append("| Action | Scenario | Issue | Reason |")
+    lines.append("|---|---|---|---|")
+    for change in csv_changes:
+        action   = change['action'].upper()
+        scenario = change.get('scenario_id', '—')
+        issue_id = change.get('issue_id', '—')
+        reason   = change.get('reason', '—')
+        lines.append(f"| {action} | {scenario} | #{issue_id} | {reason} |")
+    lines.append("")
+
+    # ── Scenario Details ──
+    # ── Scenario Details ──
+    lines.append("### Scenario Details\n")
+    for change in csv_changes:
+        scenario = change.get('scenario_id', '—')
+        action   = change['action']
+        row      = change.get('row', {})
+        lines.append(f"#### {scenario} — {action}")
+        if row:
+            for key, value in row.items():
+                if value:
+                    lines.append(f"- **{key}:** {value}")
+        lines.append("")
+    lines.append("---\n")
+
+    # ── XML Changes ──
+    lines.append("## XML Trade File Changes\n")
+    lines.append("| Action | File | Reason |")
+    lines.append("|---|---|---|")
+    for change in xml_changes:
+        action   = change['action'].upper()
+        filename = change.get('filename', '—')
+        reason   = change.get('reason', '—')
+        lines.append(f"| {action} | {filename} | {reason} |")
+    lines.append("")
+
+    lines.append("### XML File Contents\n")
+    for change in xml_changes:
+        if change['action'] in ('create', 'modify') and change.get('content'):
+            lines.append(f"#### {change['filename']}")
+            lines.append("```xml")
+            lines.append(change['content'])
+            lines.append("```\n")
+
+    lines.append("---\n")
+
+    # ── Traceability ──
+    lines.append("## Traceability Matrix\n")
+    for trace in traceability:
+        lines.append(f"### Issue #{trace['issue_id']}: {trace['issue_title']}\n")
+
+        lines.append("#### Acceptance Criteria\n")
+        for ac in trace.get('acceptance_criteria', []):
+            lines.append(f"- {ac}")
+        lines.append("")
+
+        lines.append("#### Scenarios Impacted\n")
+        lines.append(", ".join(f"`{s}`" for s in trace.get('scenarios_impacted', [])))
+        lines.append("")
+
+        lines.append("#### Coverage Notes\n")
+        lines.append(trace.get('coverage_notes', '—'))
+        lines.append("")
+
+    # ── Write file ──
+    reports_path = Path(reports_dir)
+    reports_path.mkdir(parents=True, exist_ok=True)
+    report_file = reports_path / f"report-{release_tag}.md"
+    report_file.write_text("\n".join(lines), encoding="utf-8")
+    print(f"MD report generated: {report_file}")
 # ─────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────
@@ -821,7 +938,12 @@ def main():
         analysis=analysis,
         reports_dir=args.reports_dir,
     )
-
+    generate_md_report(
+        release_tag=args.release_tag,
+        issues=issues,
+        analysis=analysis,
+        reports_dir=args.reports_dir,
+    )
     print("\n" + "=" * 60)
     print("REGRESSION PACK ANALYZER COMPLETE")
     print("=" * 60)
