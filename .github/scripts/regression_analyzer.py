@@ -142,7 +142,8 @@ def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, 
         "7. When a test case is modified, update BOTH the CSV row AND the corresponding XML file if the input condition changes.\n"
         "8. **IMPORTANT**: partyAccount1 = buyer account, partyAccount2 = seller account in the system context.\n"
         "9. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.\n"
-        "10. For rejected/failed test cases, the enriched fields are typically empty.\n\n"
+        "10. For rejected/failed test cases, the enriched fields are typically empty.\n"
+        "11. Prioritize modifying existing CSV rows to cover additional test conditions over inserting new rows, especially when the new conditions do not conflict with existing ones. A test case testing multiple non-conflicting conditions is fully valid and preferred.\n\n"
 
         "## COVERAGE ANALYSIS — DO THIS BEFORE MAKING ANY CHANGES\n\n"
         "For each AC in the issue, work through these steps in order before deciding any action.\n\n"
