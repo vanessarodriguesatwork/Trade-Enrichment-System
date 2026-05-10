@@ -107,7 +107,7 @@ public class TradeService {
         }
         if( value.trim().isEmpty()){
             System.out.println("WARN: buyerSellerIndicator tag is blank, defaulting to B");
-            return "S";
+            return "B";
 
         }
         String upperValue = value.trim().toUpperCase();

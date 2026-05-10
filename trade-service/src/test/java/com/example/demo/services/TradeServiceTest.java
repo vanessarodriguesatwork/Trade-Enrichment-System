@@ -347,7 +347,7 @@ class TradeServiceTest {
         ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
         verify(loggingClient).send(captor.capture());
 
-        assertEquals("S", captor.getValue().getBuyerSellerIndicator(),
+        assertEquals("B", captor.getValue().getBuyerSellerIndicator(),
             "Empty tag should default to 'B' for backward compatibility");
     }
 }
