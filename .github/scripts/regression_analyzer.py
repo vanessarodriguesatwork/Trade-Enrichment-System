@@ -913,6 +913,8 @@ def main():
         if csv_changes or new_columns:
             csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
             write_csv_file(args.csv_file, csv_rows, updated_headers)
+            csv_rows = read_csv_file(args.csv_file)
+
             print(f"  CSV updated: {len(csv_rows)} total rows")
             if new_columns:
                 print(f"  New columns added: {[col['name'] for col in new_columns]}")
