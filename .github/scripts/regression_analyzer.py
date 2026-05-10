@@ -792,7 +792,6 @@ def generate_md_report(
     lines.append("")
 
     # ── Scenario Details ──
-    # ── Scenario Details ──
     lines.append("### Scenario Details\n")
     for change in csv_changes:
         scenario = change.get('scenario_id', '—')
@@ -884,64 +883,84 @@ def main():
     xml_files = read_trade_xmls(args.trades_dir)
     print(f"Current XML files: {len(xml_files)}")
 
-    # ── Step 2: Build prompt & call Claude ──
+    # ── Step 2: Process issues one by one ──
     print("\n" + "─" * 60)
-    print("ANALYZING WITH CLAUDE")
+    print("ANALYZING ISSUES WITH CLAUDE")
     print("─" * 60)
 
-    prompt = build_prompt(issues, csv_rows, xml_files)
-    print(f"Prompt size: {len(prompt)} chars")
+    # Initialize accumulators
+    all_csv_changes = []
+    all_xml_changes = []
+    all_traceability = []
+    overall_summary_parts = []
+    all_new_columns = []
 
-    analysis = call_claude(prompt)
-    print(f"\nFull agent response:\n{json.dumps(analysis, indent=2)}")
+    for i, issue in enumerate(issues, 1):
+        print(f"\nProcessing issue {i}/{len(issues)}: #{issue['id']} - {issue['title']}")
 
-    print(f"\nAnalysis summary: {analysis.get('analysis_summary', 'N/A')}")
-    print(f"CSV changes: {len(analysis.get('csv_changes', []))}")
-    print(f"XML changes: {len(analysis.get('xml_changes', []))}")
+        # Build prompt with single issue and current state
+        prompt = build_prompt([issue], csv_rows, xml_files)
+        print(f"  Prompt size: {len(prompt)} chars")
 
-    # ── Step 3: Apply CSV changes ──
+        analysis = call_claude(prompt)
+        print(f"  Analysis summary: {analysis.get('analysis_summary', 'N/A')}")
+        print(f"  CSV changes: {len(analysis.get('csv_changes', []))}")
+        print(f"  XML changes: {len(analysis.get('xml_changes', []))}")
+
+        # Apply CSV changes
+        csv_changes = analysis.get("csv_changes", [])
+        new_columns = analysis.get("new_columns", [])
+        if csv_changes or new_columns:
+            csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
+            write_csv_file(args.csv_file, csv_rows, updated_headers)
+            print(f"  CSV updated: {len(csv_rows)} total rows")
+            if new_columns:
+                print(f"  New columns added: {[col['name'] for col in new_columns]}")
+
+        # Apply XML changes
+        xml_changes = analysis.get("xml_changes", [])
+        if xml_changes:
+            apply_xml_changes(args.trades_dir, xml_changes)
+
+        # Re-read XML files for next iteration
+        xml_files = read_trade_xmls(args.trades_dir)
+
+        # Accumulate results
+        all_csv_changes.extend(csv_changes)
+        all_xml_changes.extend(xml_changes)
+        all_traceability.extend(analysis.get("traceability", []))
+        overall_summary_parts.append(analysis.get("analysis_summary", ""))
+        all_new_columns.extend(new_columns)
+
+    # Create overall analysis
+    overall_analysis = {
+        "analysis_summary": " ".join(overall_summary_parts),
+        "csv_changes": all_csv_changes,
+        "xml_changes": all_xml_changes,
+        "traceability": all_traceability,
+        "new_columns": all_new_columns  # Include for completeness, though not used in reports
+    }
+
+    print(f"\nOverall analysis complete:")
+    print(f"  Total CSV changes: {len(all_csv_changes)}")
+    print(f"  Total XML changes: {len(all_xml_changes)}")
+    print(f"  Total traceability entries: {len(all_traceability)}")
+
+    # ── Step 3: Generate final report ──
     print("\n" + "─" * 60)
-    print("APPLYING CSV CHANGES")
-    print("─" * 60)
-
-    csv_changes = analysis.get("csv_changes", [])
-    new_columns = analysis.get("new_columns", [])
-
-    if csv_changes or new_columns:
-        csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
-        write_csv_file(args.csv_file, csv_rows, updated_headers)
-        print(f"CSV updated: {len(csv_rows)} total rows")
-        if new_columns:
-            print(f"New columns added: {[col['name'] for col in new_columns]}")
-    else:
-        print("No CSV changes to apply")
-
-    # ── Step 4: Apply XML changes ──
-    print("\n" + "─" * 60)
-    print("APPLYING XML CHANGES")
-    print("─" * 60)
-
-    xml_changes = analysis.get("xml_changes", [])
-    if xml_changes:
-        apply_xml_changes(args.trades_dir, xml_changes)
-    else:
-        print("No XML changes to apply")
-
-    # ── Step 5: Generate report ──
-    print("\n" + "─" * 60)
-    print("GENERATING REPORT")
+    print("GENERATING FINAL REPORT")
     print("─" * 60)
 
     generate_html_report(
         release_tag=args.release_tag,
         issues=issues,
-        analysis=analysis,
+        analysis=overall_analysis,
         reports_dir=args.reports_dir,
     )
     generate_md_report(
         release_tag=args.release_tag,
         issues=issues,
-        analysis=analysis,
+        analysis=overall_analysis,
         reports_dir=args.reports_dir,
     )
     print("\n" + "=" * 60)
