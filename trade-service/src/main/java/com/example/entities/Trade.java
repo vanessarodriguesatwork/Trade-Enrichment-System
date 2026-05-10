@@ -10,12 +10,14 @@ public class Trade {
     private String amount;
     private String partyAccount1;
     private String partyAccount2;
-    public Trade(String partyAccount1, String partyAccount2, String amount, String time, String tradeId) {
+    private String buyerSellerIndicator;
+    public Trade(String partyAccount1, String partyAccount2, String amount, String time, String tradeId, String buyerSellerIndicator) {
         this.partyAccount1 = partyAccount1;
         this.partyAccount2 = partyAccount2;
         this.amount = amount;
         this.time = time;
         this.tradeId = tradeId;
+        this.buyerSellerIndicator = buyerSellerIndicator;
     }
     public String getTradeId() {
         return tradeId;
@@ -48,5 +50,11 @@ public class Trade {
         this.amount = amount;
     }
     public Trade() {
+    }
+    public String getBuyerSellerIndicator() {
+        return buyerSellerIndicator;
+    }
+    public void setBuyerSellerIndicator(String buyerSellerIndicator) {
+        this.buyerSellerIndicator = buyerSellerIndicator;
     }
 }

@@ -31,7 +31,7 @@ public class TradeService {
     private final XmlMapper xmlMapper = new XmlMapper();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void process(String xml) throws Exception {
+    public void process(String xml) throws Exception{
 
         System.out.println("RAW XML = " + xml);
 
@@ -44,7 +44,7 @@ public class TradeService {
             throw new InvalidXmlException("Invalid XML");
         }
 
-        // Fetch accounts
+        // Fetch accounts.
         AccountDTO partyAccount1 = accountClient.getAccount(trade.getPartyAccount1());
         AccountDTO partyAccount2 = accountClient.getAccount(trade.getPartyAccount2());
         System.out.println(" Party Account 1 = " + partyAccount1);
@@ -54,6 +54,11 @@ public class TradeService {
             System.out.println(" Skipping → account not found");
             throw new Exception("Account not found");
         }
+        
+        // Convert buyerSellerIndicator to abbreviated format
+        String abbreviatedIndicator = abbreviateBuyerSellerIndicator(trade.getBuyerSellerIndicator());
+        
+        // Enrich
         BigDecimal amount = amountTruncationService.truncateToTwoDecimalPlaces(trade.getAmount());
         // Enrich.
         EnrichedTrade enriched = new EnrichedTrade(
@@ -63,7 +68,8 @@ public class TradeService {
                 trade.getPartyAccount1(),
                 trade.getPartyAccount2(),
                 partyAccount1,
-                partyAccount2
+                partyAccount2,
+                abbreviatedIndicator
         );
 
         try {
@@ -79,6 +85,42 @@ public class TradeService {
 
         // Send to logging
         loggingClient.send(enriched);
+    }
+
+    /**
+     * Converts buyerSellerIndicator from input format (BUYER/SELLER) to abbreviated format (B/S).
+     * 
+     * Conversion rules:
+     * - BUYER → "B"
+     * - SELLER → "S"
+     * - null/empty → "B" (default to BUYER for backward compatibility)
+     * - invalid value → "" (empty string, with warning logged)
+     * 
+     * @param value The input buyerSellerIndicator value
+     * @return Abbreviated indicator (B, S, or empty string)
+     */
+    private String abbreviateBuyerSellerIndicator(String value) {
+        if (value == null ) {
+            // Default to BUYER for backward compatibility
+            System.out.println("WARN: buyerSellerIndicator tag is missing from trade XML");
+            return null;
+        }
+        if( value.trim().isEmpty()){
+            System.out.println("WARN: buyerSellerIndicator tag is blank, defaulting to B");
+            return "B";
+
+        }
+        String upperValue = value.trim().toUpperCase();
+        
+        if ("BUYER".equals(upperValue)) {
+            return "B";
+        } else if ("SELLER".equals(upperValue)) {
+            return "S";
+        } else {
+            // Invalid value - log warning and return empty string
+            System.out.println("WARN: Invalid buyerSellerIndicator value: '" + value + "'. Expected BUYER or SELLER.");
+            return "";
+        }
     }
     
 }

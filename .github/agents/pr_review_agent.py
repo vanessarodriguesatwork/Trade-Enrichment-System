@@ -307,7 +307,7 @@ def extract_requirement_issue_from_commits(
 ) -> dict[str, Any] | None:
     """
     Expected commit message:
-      2 - Add Buyer/Seller Indicator (B/S) to Enriched Trade Output
+       2 - Add Buyer/Seller Indicator (B/S) to Enriched Trade Output
 
     If multiple commits match, use latest matching commit.
     """
