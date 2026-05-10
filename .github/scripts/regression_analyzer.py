@@ -1102,7 +1102,7 @@ def main():
     print("FILTERING FUNCTIONAL CHANGES")
     print("─" * 60)
 
-    overall_analysis = filter_functional_changes(overall_analysis)
+    overall_analysis = filter_functional_changes(overall_analysis,old_csv_rows)
 
     print(f"After filtering: {len(overall_analysis.get('csv_changes', []))} functional CSV changes")
 
