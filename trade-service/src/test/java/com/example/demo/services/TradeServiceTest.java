@@ -55,6 +55,17 @@ class TradeServiceTest {
                 "</Trade>";
     }
 
+    private String xmlWithBuyerSellerIndicator(String indicator) {
+        return "<Trade>" +
+                "<tradeId>T1</tradeId>" +
+                "<time>10:30</time>" +
+                "<amount>5000</amount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
+                "<buyerSellerIndicator>" + indicator + "</buyerSellerIndicator>" +
+                "</Trade>";
+    }
+
     private AccountDTO createAccountDTO(String accNo, String name, String currency, String branch) {
         AccountDTO dto = new AccountDTO();
         dto.setAccountNumber(accNo);
@@ -109,7 +120,7 @@ class TradeServiceTest {
     }
 
     @Test
-    void testProcess_MalformedXml() {
+    void testProcess_MalformedXml() throws Exception {
         String malformed = "<Trade><tradeId>T1</tradeId>";  // unclosed tag
 
         assertThrows(InvalidXmlException.class,
@@ -124,7 +135,7 @@ class TradeServiceTest {
     void testProcess_BuyerNotFound() {
         when(accountClient.getAccount("B001")).thenReturn(null);
         when(accountClient.getAccount("S001")).thenReturn(
-                createAccountDTO("S001", "Jane", "USD", "London"));
+        createAccountDTO("S001", "Jane", "USD", "London"));
 
         assertThrows(Exception.class,
                 () -> tradeService.process(validXml()));
@@ -184,5 +195,159 @@ class TradeServiceTest {
 
         assertThrows(RuntimeException.class,
                 () -> tradeService.process(validXml()));
+    }
+
+    // ========== BUYER SELLER INDICATOR TESTS ==========
+
+    @Test
+    void testProcess_BuyerSellerIndicator_ValidBuyer() throws Exception {
+        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        doNothing().when(loggingClient).send(captor.capture());
+
+        tradeService.process(xmlWithBuyerSellerIndicator("BUYER"));
+
+        EnrichedTrade enriched = captor.getValue();
+        assertEquals("B", enriched.getBuyerSellerIndicator(), 
+                "BUYER should be abbreviated to B");
+        verify(loggingClient).send(any(EnrichedTrade.class));
+    }
+
+    @Test
+    void testProcess_BuyerSellerIndicator_ValidSeller() throws Exception {
+        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        doNothing().when(loggingClient).send(captor.capture());
+
+        tradeService.process(xmlWithBuyerSellerIndicator("SELLER"));
+
+        EnrichedTrade enriched = captor.getValue();
+        assertEquals("S", enriched.getBuyerSellerIndicator(), 
+                "SELLER should be abbreviated to S");
+        verify(loggingClient).send(any(EnrichedTrade.class));
+    }
+
+    
+    @Test
+    void testProcess_BuyerSellerIndicator_InvalidValue_EmptyString() throws Exception{
+        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        doNothing().when(loggingClient).send(captor.capture());
+
+        tradeService.process(xmlWithBuyerSellerIndicator("INVALID"));
+
+        EnrichedTrade enriched = captor.getValue();
+        assertEquals("", enriched.getBuyerSellerIndicator(), 
+                "Invalid buyerSellerIndicator should result in empty string");
+        verify(loggingClient).send(any(EnrichedTrade.class));
+    }
+
+    @Test
+    void testProcess_BuyerSellerIndicator_CaseInsensitive() throws Exception{
+        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        doNothing().when(loggingClient).send(captor.capture());
+
+        // Test lowercase
+        tradeService.process(xmlWithBuyerSellerIndicator("buyer"));
+
+        EnrichedTrade enriched = captor.getValue();
+        assertEquals("B", enriched.getBuyerSellerIndicator(), 
+                "Lowercase 'buyer' should be converted to B (case-insensitive)");
+    }
+
+    @Test
+    void testProcess_BuyerSellerIndicator_WithWhitespace() throws Exception {
+        AccountDTO buyer = createAccountDTO("B001", "John Doe", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane Smith", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        doNothing().when(loggingClient).send(captor.capture());
+
+        // Test with whitespace
+        tradeService.process(xmlWithBuyerSellerIndicator("  SELLER  "));
+
+        EnrichedTrade enriched = captor.getValue();
+        assertEquals("S", enriched.getBuyerSellerIndicator(), 
+                "Whitespace-padded 'SELLER' should be converted to S");
+    }
+    // Existing test covers BUYER/SELLER present — add this:
+    @Test
+    void testProcess_MissingBuyerSellerIndicator_FieldOmitted() {
+        // XML with no <buyerSellerIndicator> tag at all
+        String xmlWithoutIndicator = "<Trade>" +
+                "<tradeId>T1</tradeId>" +
+                "<time>10:30</time>" +
+                "<amount>5000</amount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
+                "</Trade>";
+
+        AccountDTO buyer = createAccountDTO("B001", "John", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        doNothing().when(loggingClient).send(any(EnrichedTrade.class));
+
+        assertDoesNotThrow(() -> tradeService.process(xmlWithoutIndicator));
+
+        // Capture what was sent to the logging client
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        verify(loggingClient).send(captor.capture());
+
+        // null means @JsonInclude(NON_NULL) will omit it from JSON output
+        assertNull(captor.getValue().getBuyerSellerIndicator(),
+                "Missing XML tag should result in null field, not 'B'");
+    }
+
+    @Test
+    void testProcess_EmptyBuyerSellerIndicator_DefaultsToBuyer() {
+        String xmlWithEmptyIndicator = "<Trade>" +
+                "<tradeId>T1</tradeId>" +
+                "<time>10:30</time>" +
+                "<amount>5000</amount>" +
+                "<partyAccount1>B001</partyAccount1>" +
+                "<partyAccount2>S001</partyAccount2>" +
+                "<buyerSellerIndicator></buyerSellerIndicator>" +
+                "</Trade>";
+
+        AccountDTO buyer = createAccountDTO("B001", "John", "USD", "NY");
+        AccountDTO seller = createAccountDTO("S001", "Jane", "USD", "London");
+
+        when(accountClient.getAccount("B001")).thenReturn(buyer);
+        when(accountClient.getAccount("S001")).thenReturn(seller);
+        doNothing().when(loggingClient).send(any(EnrichedTrade.class));
+
+        assertDoesNotThrow(() -> tradeService.process(xmlWithEmptyIndicator));
+
+        ArgumentCaptor<EnrichedTrade> captor = ArgumentCaptor.forClass(EnrichedTrade.class);
+        verify(loggingClient).send(captor.capture());
+
+        assertEquals("B", captor.getValue().getBuyerSellerIndicator(),
+            "Empty tag should default to 'B' for backward compatibility");
     }
 }

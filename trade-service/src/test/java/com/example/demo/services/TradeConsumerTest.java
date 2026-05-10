@@ -121,12 +121,13 @@ class TradeConsumerTest {
 
     @Test
     void testTrade_ParameterizedConstructor() {
-        Trade trade = new Trade("B1", "S1", "100", "12:00", "T1");
+        Trade trade = new Trade("B1", "S1", "100", "12:00", "T1","Buyer");
 
         assertEquals("T1", trade.getTradeId());
         assertEquals("12:00", trade.getTime());
         assertEquals("100", trade.getAmount());
         assertEquals("B1", trade.getPartyAccount1());
         assertEquals("S1", trade.getPartyAccount2());
+        assertEquals("Buyer", trade.getBuyerSellerIndicator());
     }
 }

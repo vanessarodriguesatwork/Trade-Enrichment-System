@@ -9,7 +9,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.example.exceptions.InvalidXmlException;
-import com.example.exceptions.RecoverableException;
 import com.example.services.TradeService;
 
 @Service
@@ -17,11 +16,13 @@ public class TradeConsumer {
 
     @Autowired
     private TradeService tradeService;
+
     @Autowired
-    private KafkaTemplate<String,String> kafkaTemplate;
+    private KafkaTemplate<String, String> kafkaTemplate;
+
     @RetryableTopic(
-            attempts = "1",
-            backOff = @BackOff(delay = 10, multiplier = 2)
+            attempts = "4",
+            backOff = @BackOff(delay = 5000, multiplier = 2)
     )
     @KafkaListener(topics = "${topic.trade}", groupId = "trade-group")
     public void consume(String xml) throws Exception{
@@ -31,12 +32,8 @@ public class TradeConsumer {
         try {
             tradeService.process(xml);
 
-        } catch(RecoverableException ex) {
-            System.out.println("Recoverable error → retrying");
-            throw ex;
         } catch (InvalidXmlException ex) {
-            System.out.println("Invalid XML → skipping");
-            throw ex;
+            throw ex; // No retries for invalid XML, send directly to DLT
         } catch (Exception ex) {
             throw ex;
         }
@@ -44,8 +41,8 @@ public class TradeConsumer {
 
     @DltHandler
     public void handleDlt(String xml, Exception ex) {
+        kafkaTemplate.send("trade-dlt", xml);
         System.out.println("MESSAGE SENT TO DLT (All retries failed)");
         System.out.println("Message: " + xml);
-        kafkaTemplate.send("trade-dlt", xml);
     }
 }

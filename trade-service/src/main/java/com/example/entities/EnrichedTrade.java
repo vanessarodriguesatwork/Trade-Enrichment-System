@@ -1,7 +1,9 @@
 package com.example.entities;
 
-import com.example.dto.AccountDTO;
 import java.math.BigDecimal;
+
+import com.example.dto.AccountDTO;
+import com.fasterxml.jackson.annotation.JsonInclude;
 public class EnrichedTrade {
 
     private String tradeId;
@@ -11,11 +13,13 @@ public class EnrichedTrade {
     private String partyAccount2;
     private AccountDTO partyAccount1Details;
     private AccountDTO partyAccount2Details;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String buyerSellerIndicator;
+    
     public EnrichedTrade() {
     }
 
-    public EnrichedTrade(String tradeId, String time, BigDecimal amount, String partyAccount1, String partyAccount2, AccountDTO partyAccount1Details, AccountDTO partyAccount2Details) {
+    public EnrichedTrade(String tradeId, String time, BigDecimal amount, String partyAccount1, String partyAccount2, AccountDTO partyAccount1Details, AccountDTO partyAccount2Details, String buyerSellerIndicator) {
         this.tradeId = tradeId;
         this.time = time;
         this.amount = amount;
@@ -23,7 +27,7 @@ public class EnrichedTrade {
         this.partyAccount2 = partyAccount2;
         this.partyAccount1Details = partyAccount1Details;
         this.partyAccount2Details = partyAccount2Details;
-
+        this.buyerSellerIndicator = buyerSellerIndicator;
     }
 
     public String getTradeId() {
@@ -81,6 +85,11 @@ public class EnrichedTrade {
     public void setPartyAccount2Details(AccountDTO partyAccount2Details) {
         this.partyAccount2Details = partyAccount2Details;
     }
-
+    public String getBuyerSellerIndicator() {
+        return buyerSellerIndicator;
+    }
+    public void setBuyerSellerIndicator(String buyerSellerIndicator) {
+        this.buyerSellerIndicator = buyerSellerIndicator;
+    }
     
 }
