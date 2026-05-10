@@ -28,7 +28,7 @@ CSV_HEADERS = [
     "expected_output"
 ]
 
-CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
 
 # ─────────────────────────────────────────────
