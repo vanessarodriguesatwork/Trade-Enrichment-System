@@ -83,13 +83,15 @@ def delete_trade_xml(trades_dir: str, filename: str):
 # ─────────────────────────────────────────────
 # Prompt Builder
 # ─────────────────────────────────────────────
-def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, str]) -> str:
+def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, str], csv_headers: list[str] = None) -> str:
     """Build the analysis prompt for Claude."""
 
+    headers = csv_headers if csv_headers is not None else CSV_HEADERS
+
     # Format CSV as readable text
-    csv_text = "\t".join(CSV_HEADERS) + "\n"
+    csv_text = "\t".join(headers) + "\n"
     for row in csv_rows:
-        csv_text += "\t".join(row.get(h, "") for h in CSV_HEADERS) + "\n"
+        csv_text += "\t".join(row.get(h, "") for h in headers) + "\n"
 
     # Format XML files
     xml_text = ""
@@ -993,12 +995,13 @@ def main():
     all_traceability = []
     overall_summary_parts = []
     all_new_columns = []
+    csv_headers = CSV_HEADERS.copy()
 
     for i, issue in enumerate(issues, 1):
         print(f"\nProcessing issue {i}/{len(issues)}: #{issue['id']} - {issue['title']}")
 
         # Build prompt with single issue and current state
-        prompt = build_prompt([issue], csv_rows, xml_files)
+        prompt = build_prompt([issue], csv_rows, xml_files, csv_headers)
         print(f"  Prompt size: {len(prompt)} chars")
 
         analysis = call_claude(prompt)
@@ -1011,9 +1014,10 @@ def main():
         new_columns = analysis.get("new_columns", [])
         if csv_changes or new_columns:
             csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
+            csv_headers = updated_headers
             write_csv_file(args.csv_file, csv_rows, updated_headers)
             csv_rows = read_csv_file(args.csv_file)
-            print(updated_headers)
+            print(csv_headers)
             print(f"  CSV updated: {len(csv_rows)} total rows")
             if new_columns:
                 print(f"  New columns added: {[col['name'] for col in new_columns]}")
