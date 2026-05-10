@@ -293,11 +293,11 @@ def call_claude(prompt: str) -> dict:
 # ─────────────────────────────────────────────
 # Apply Changes
 # ─────────────────────────────────────────────
-def apply_csv_changes(csv_rows: list[dict], changes: list[dict], new_columns: list[dict]) -> tuple[list[dict], list[str]]:
+def apply_csv_changes(csv_rows: list[dict], changes: list[dict], new_columns: list[dict],current_headers: list[str] = None) -> tuple[list[dict], list[str]]:
     """Apply modify/insert/delete changes to CSV rows. Returns updated rows and updated headers."""
+    headers = list(current_headers) if current_headers else list(CSV_HEADERS)  # ← changed
 
     # Build updated headers dynamically
-    headers = list(CSV_HEADERS)
     for col in new_columns:
         if col["name"] not in headers:
             # All new columns are Kafka output fields — always insert before expected_output
@@ -997,10 +997,10 @@ def main():
         # Apply CSV changes
         csv_changes = analysis.get("csv_changes", [])
         new_columns = analysis.get("new_columns", [])
+
         if csv_changes or new_columns:
-            csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
-            csv_headers = updated_headers
-            write_csv_file(args.csv_file, csv_rows, updated_headers)
+            csv_rows, csv_headers = apply_csv_changes(csv_rows, csv_changes, new_columns, csv_headers)
+            write_csv_file(args.csv_file, csv_rows, csv_headers)
             csv_rows = read_csv_file(args.csv_file)
             print(csv_headers)
             print(f"  CSV updated: {len(csv_rows)} total rows")
