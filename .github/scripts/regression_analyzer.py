@@ -105,151 +105,187 @@ def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, 
         issues_text += f"ISSUE #{issue['id']}: {issue['title']}\n"
         issues_text += f"{'='*60}\n"
         issues_text += f"{issue['body']}\n"
-    
+
+    # Dynamically build row template from current headers
     row_template = {h: "..." for h in headers}
-    row_template_str = json.dumps(row_template, indent=16)
+    row_template_json = json.dumps(row_template, indent=4)
+    row_template_str = row_template_json.replace("\n", "\n            ")
 
-    prompt = f"""You are a regression test pack analyzer for a Kafka-based Trade Enrichment System.
+    # Dynamically list Group 2 columns so Claude sees all current output fields
+    group2_cols = [h for h in headers if h not in ("scenario_id", "description", "trade_id")]
+    group2_description = "\n".join(f"- `{col}`" for col in group2_cols)
 
-## YOUR TASK
-Analyze the following GitHub issues (requirements) and determine the impact on the existing regression test pack.
-You must decide which test cases (CSV rows) need to be MODIFIED, INSERTED, or DELETED, and update the corresponding trade XML files.
+    prompt = (
+        "You are a regression test pack analyzer for a Kafka-based Trade Enrichment System.\n\n"
 
-## RULES
-1. **Prefer MODIFYING existing test cases** over creating new ones — only insert new ones if the scenario is genuinely new and not covered by any existing test case.
-2. Each CSV row represents a test scenario. Each scenario has a corresponding XML file in the trades directory.
-3. The `scenario_id` follows the pattern TC-XXX (e.g., TC-001, TC-022). For new scenarios, continue from the highest existing ID.
-4. The `trade_id` and XML filename follow the pattern TRD-XXXX (e.g., TRD-0001). For new trades, continue from the highest existing number. Special trades like TRD-UNKNOWN, TRD-MISSING follow their own pattern.
-5. XML files follow this structure:
-```xml
-<trade>
-    <tradeId>TRD-XXXX</tradeId>
-    <time>2026-05-05TXX:XX:XXZ</time>
-    <amount>XXXX</amount>
-    <partyAccount1>ACC-XXX</partyAccount1>
-    <partyAccount2>ACC-XXX</partyAccount2>
-</trade>
-```
-   New fields from issues should be added to this structure where applicable.
-6. For malformed XML test cases, intentionally break the XML syntax (mismatched tags, etc.)
-7. The `expected_output` column describes what should happen when this trade is processed.
-8. When a test case is modified, update BOTH the CSV row AND the corresponding XML file.
-9. Analyze ALL acceptance criteria from each issue and ensure every AC is covered by at least one test scenario.
-10. For each issue, generate exactly one unique test case for every acceptance criterion. Do not create duplicate scenarios that cover the same acceptance criterion.
-11. **IMPORTANT**: partyAccount1 = buyer account, partyAccount2 = seller account in the system context.
-12. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.
-13. For rejected/failed test cases, the enriched fields are typically empty.
+        "## YOUR TASK\n"
+        "Analyze the following GitHub issues (requirements) and determine the impact on the existing regression test pack.\n"
+        "You must decide which test cases (CSV rows) need to be MODIFIED, INSERTED, or DELETED, and update the corresponding trade XML files.\n\n"
 
-## CSV COLUMN STRUCTURE
-The CSV columns are divided into two logical groups:
+        "## RULES\n"
+        "1. Each CSV row represents a test scenario. Each scenario has a corresponding XML file in the trades directory.\n"
+        "2. The `scenario_id` follows the pattern TC-XXX (e.g., TC-001, TC-022). For new scenarios, continue from the highest existing ID.\n"
+        "3. The `trade_id` and XML filename follow the pattern TRD-XXXX (e.g., TRD-0001). For new trades, continue from the highest existing number. Special trades like TRD-UNKNOWN, TRD-MISSING follow their own pattern.\n"
+        "4. XML files follow this structure:\n"
+        "```xml\n"
+        "<trade>\n"
+        "    <tradeId>TRD-XXXX</tradeId>\n"
+        "    <time>2026-05-05TXX:XX:XXZ</time>\n"
+        "    <amount>XXXX</amount>\n"
+        "    <partyAccount1>ACC-XXX</partyAccount1>\n"
+        "    <partyAccount2>ACC-XXX</partyAccount2>\n"
+        "</trade>\n"
+        "```\n"
+        "   New fields from issues should be added to this structure where applicable.\n"
+        "5. For malformed XML test cases, intentionally break the XML syntax (mismatched tags, etc.)\n"
+        "6. The `expected_output` column describes what should happen when this trade is processed.\n"
+        "7. When a test case is modified, update BOTH the CSV row AND the corresponding XML file if the input condition changes.\n"
+        "8. **IMPORTANT**: partyAccount1 = buyer account, partyAccount2 = seller account in the system context.\n"
+        "9. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.\n"
+        "10. For rejected/failed test cases, the enriched fields are typically empty.\n\n"
 
-**Group 1 — Test Metadata:**
-- `scenario_id`: Unique test case identifier (TC-XXX)
-- `description`: Human-readable description of the test scenario
-- `trade_id`: Reference to the corresponding input XML file in the trades directory 
-  (e.g., TRD-0001 maps to TRD-0001.xml). This is the ONLY link to the input — 
-  all input data lives in the XML file, NOT in the CSV.
+        "## COVERAGE ANALYSIS — DO THIS BEFORE MAKING ANY CHANGES\n\n"
+        "For each AC in the issue, work through these steps in order before deciding any action.\n\n"
 
-**Group 2 — Expected Kafka Output:**
-ALL remaining columns represent the expected message that should be published 
-to the Kafka output queue after the system processes the input XML trade file.
-- `tradeId`, `time`, `amount`, `partyAccount1`, `partyAccount2`: Core trade fields 
-  expected in the Kafka output message.
-- `partyAccount1_accountNumber`, `partyAccount1_holderName`, `partyAccount1_currency`, 
-  `partyAccount1_branch`: Expected enriched fields for the buyer account in the Kafka output.
-- `partyAccount2_accountNumber`, `partyAccount2_holderName`, `partyAccount2_currency`, 
-  `partyAccount2_branch`: Expected enriched fields for the seller account in the Kafka output.
-- `expected_output`: Overall expected result/status of the trade processing 
-  (e.g., ENRICHED, REJECTED, FAILED).
+        "### STEP 1 — IDENTIFY THE REQUIRED INPUT CONDITION\n"
+        "What must the input XML contain (or lack) to exercise this AC?\n"
+        "Be specific. Examples:\n"
+        '- "buyerSellerIndicator tag present with value BUYER"\n'
+        '- "buyerSellerIndicator tag absent entirely"\n'
+        '- "amount field has 3 decimal places"\n'
+        '- "partyAccount1 references an unknown account"\n\n'
 
-**The input to the system is ALWAYS the XML file. The CSV only defines what 
-the Kafka output should look like after processing.**
+        "### STEP 2 — SCAN EXISTING XML FILES FOR THAT CONDITION\n"
+        "Go through every XML file listed in CURRENT TRADE XML FILES.\n"
+        "Ask: does any existing XML already have this exact input condition?\n\n"
 
-**Adding New Columns:**
-- New columns should ONLY be added to Group 2 (Expected Kafka Output) — 
-  since Group 1 (metadata) is fixed.
-- Add a new column if a GitHub issue introduces a new field that should 
-  appear in the Kafka output message.
-- New column names should follow the existing naming convention: 
-  `partyAccountX_<fieldName>` for account-related fields, or descriptive 
-  camelCase for other fields.
-- When adding new columns, backfill ALL existing rows with "" if not applicable.
-- Always declare new columns in the `new_columns` field of your response.
+        "### STEP 3 — APPLY THE DECISION TREE\n\n"
+        "For each AC, the action is determined by this decision tree:\n\n"
+        "Does any existing XML have the required input condition?\n"
+        "|\n"
+        "├── NO\n"
+        "|   └── INSERT new test case + CREATE new XML file\n"
+        "|\n"
+        "└── YES — found a matching XML (and its CSV row)\n"
+        "    |\n"
+        "    └── Does adding this assertion give the test case a second\n"
+        "        INDEPENDENT reason to fail, unrelated to its original purpose?\n"
+        "        |\n"
+        "        ├── NO\n"
+        "        |   └── MODIFY the existing test case (update CSV row + XML if needed)\n"
+        "        |\n"
+        "        └── YES\n"
+        "            └── INSERT new CSV row, REUSE the existing XML file\n"
+        "                (same trade_id, new scenario_id, different primary assertion)\n\n"
 
-## FIELD CHANGE GUIDELINES
-**For new fields:**
-1. Add new column across all test cases (structural change)
-2. Identify test cases covering acceptance criteria
-3. Modify only those test cases (functional change)
-4. Do not report rows where field is only backfilled
-5. Only create new test cases if existing ones cannot cover acceptance criteria
+        "### STEP 4 — CONSOLIDATE BEFORE FINALIZING\n"
+        "Before writing your response:\n"
+        "- Can multiple ACs be satisfied by the same input condition? → Cover in one test case\n"
+        "- Are you inserting two test cases that differ only in expected output, not input? → Consolidate into one\n"
+        "- Does every INSERT have a genuinely unique input condition absent from all existing XMLs? → If not, convert to MODIFY or REUSE\n\n"
 
-**For existing fields:**
-1. Prefer modifying existing test cases
-2. Avoid creating new test cases unless absolutely necessary
+        "### STEP 5 — JUSTIFY EVERY INSERT\n"
+        "For every INSERT action in your response you must state:\n"
+        "- Which existing XMLs you checked for this input condition\n"
+        "- Why none of them had the required condition\n"
+        "- Why the existing test case whose XML you are reusing (if reusing) cannot simply be modified\n\n"
+        "If you cannot provide a clear justification, convert the INSERT to a MODIFY.\n\n"
 
-**Always distinguish:**
-- Structural changes (do not report)
-- Functional changes (report)
+        "## TEST CASE INTEGRITY RULE\n\n"
+        "Each test case must have exactly ONE primary reason to fail.\n\n"
+        "A test case has one reason to fail when: a single failure in the system\n"
+        "(one bug, one missing field, one wrong value) is sufficient to cause the test to fail.\n\n"
+        "A test case has multiple reasons to fail when: two independent system\n"
+        "behaviors must both work correctly for the test to pass. These must be\n"
+        "separated into distinct test cases.\n\n"
+        "NOTE: Multiple CSV rows can reference the same XML file. A new XML is only\n"
+        "needed when the input condition itself is genuinely new.\n\n"
+        "## CSV COLUMN STRUCTURE\n\n"
+        "**Group 1 — Test Metadata (fixed, never add columns here):**\n"
+        "- `scenario_id`: Unique test case identifier (TC-XXX)\n"
+        "- `description`: Human-readable description of the test scenario\n"
+        "- `trade_id`: Reference to the corresponding input XML file in the trades\n"
+        "  directory (e.g., TRD-0001 maps to TRD-0001.xml). This is the ONLY link\n"
+        "  to the input — all input data lives in the XML file, NOT in the CSV.\n\n"
+        "**Group 2 — Expected Kafka Output (all remaining columns):**\n"
+        "ALL columns below represent the expected message published to the Kafka\n"
+        "output queue after the system processes the input XML trade file:\n"
+        + group2_description + "\n\n"
 
-## GITHUB ISSUES TO ANALYZE
-{issues_text}
+        "**The input to the system is ALWAYS the XML file. The CSV only defines what\n"
+        "the Kafka output should look like after processing.**\n\n"
 
-## CURRENT REGRESSION PACK — trade.csv (tab-delimited)
-{csv_text}
+        "**Adding New Columns:**\n"
+        "- New columns should ONLY be added to Group 2 (Expected Kafka Output)\n"
+        "- Add a new column only if a GitHub issue introduces a new field that should\n"
+        "  appear in the Kafka output message\n"
+        "- New column names should follow the existing naming convention:\n"
+        "  `partyAccountX_<fieldName>` for account-related fields, or descriptive\n"
+        "  camelCase for other fields\n"
+        "- When adding new columns, backfill ALL existing rows with \"\" — this is a\n"
+        "  structural change, do NOT report backfilled rows in csv_changes\n"
+        "- Always declare new columns in the `new_columns` field of your response\n\n"
 
-## CURRENT TRADE XML FILES
-{xml_text}
+        "## GITHUB ISSUES TO ANALYZE\n"
+        + issues_text + "\n"
 
-## REQUIRED OUTPUT FORMAT
-You MUST respond with valid JSON only — no markdown, no explanation outside the JSON.
-Use this exact structure:
+        "## CURRENT REGRESSION PACK — trade.csv (tab-delimited)\n"
+        + csv_text + "\n"
 
-{{
-    "analysis_summary": "Brief summary of what changes are needed and why",
-        "csv_changes": [
-        {{
-            "action": "modify|insert|delete",
-            "scenario_id": "TC-XXX",
-            "reason": "...",
-            "issue_id": <issue_number>,
-            "row": {row_template_str}
-        }}   
-    ],
-    "xml_changes": [
-        {{
-            "action": "modify|create|delete",
-            "filename": "TRD-XXXX.xml",
-            "reason": "Why this XML change is needed",
-            "content": "<trade>...</trade>"
-        }}
-    ],
-    "traceability": [
-        {{
-            "issue_id": <issue_number>,
-            "issue_title": "...",
-            "acceptance_criteria": ["AC1: ...", "AC2: ..."],
-            "scenarios_impacted": ["TC-XXX", "TC-YYY"],
-            "coverage_notes": "How each AC is covered"
-        }}
-    ],
-    "new_columns": [
-        {{
-            "name": "column_name",
-            "reason": "Why this column is being added, referencing the issue and AC"
-        }}
-    ]
-}}
+        "## CURRENT TRADE XML FILES\n"
+        + xml_text + "\n"
 
-IMPORTANT:
-- For "delete" actions in csv_changes, the "row" field can be empty {{}}.
-- For "delete" actions in xml_changes, the "content" field can be empty "".
-- Ensure the JSON is valid and parseable.
-- Do NOT wrap the JSON in markdown code blocks.
-- Make sure every acceptance criterion from every issue is traced to at least one test scenario.
-"""
+        "## REQUIRED OUTPUT FORMAT\n"
+        "You MUST respond with valid JSON only — no markdown, no explanation outside the JSON.\n"
+        "Use this exact structure:\n\n"
+        "{\n"
+        '    "analysis_summary": "Brief summary of what changes are needed and why",\n'
+        '    "csv_changes": [\n'
+        "        {\n"
+        '            "action": "modify|insert|delete",\n'
+        '            "scenario_id": "TC-XXX",\n'
+        '            "reason": "Why this change is needed. For INSERTs: which existing XMLs were checked and why none sufficed.",\n'
+        '            "issue_id": <issue_number>,\n'
+        '            "row": ' + row_template_str + "\n"
+        "        }\n"
+        "    ],\n"
+        '    "xml_changes": [\n'
+        "        {\n"
+        '            "action": "modify|create|delete",\n'
+        '            "filename": "TRD-XXXX.xml",\n'
+        '            "reason": "Why this XML change is needed",\n'
+        '            "content": "<trade>...</trade>"\n'
+        "        }\n"
+        "    ],\n"
+        '    "traceability": [\n'
+        "        {\n"
+        '            "issue_id": <issue_number>,\n'
+        '            "issue_title": "...",\n'
+        '            "acceptance_criteria": ["AC1: ...", "AC2: ..."],\n'
+        '            "scenarios_impacted": ["TC-XXX", "TC-YYY"],\n'
+        '            "coverage_notes": "How each AC is covered and why the chosen action (modify/insert/reuse) was selected"\n'
+        "        }\n"
+        "    ],\n"
+        '    "new_columns": [\n'
+        "        {\n"
+        '            "name": "column_name",\n'
+        '            "reason": "Why this column is being added, referencing the issue and AC"\n'
+        "        }\n"
+        "    ]\n"
+        "}\n\n"
+
+        "IMPORTANT:\n"
+        '- For "delete" actions in csv_changes, the "row" field can be empty {}.\n'
+        '- For "delete" actions in xml_changes, the "content" field can be empty "".\n'
+        "- Ensure the JSON is valid and parseable.\n"
+        "- Do NOT wrap the JSON in markdown code blocks.\n"
+        "- Make sure every acceptance criterion from every issue is traced to at least one test scenario.\n"
+        "- Every INSERT must include justification in the \"reason\" field explaining why no existing test case could be modified instead.\n"
+        "- Multiple ACs may map to the same scenario — you do not need one test case per AC.\n"
+        "- Backfilling new columns across existing rows is NOT a csv_change — do not report it.\n"
+    )
+
     return prompt
-
 
 # ─────────────────────────────────────────────
 # Claude API Call
@@ -857,67 +893,92 @@ def generate_md_report(
 # ─────────────────────────────────────────────
 # Filter Functional Changes
 # ─────────────────────────────────────────────
-def filter_functional_changes(overall_analysis: dict) -> dict:
-    """Filter out structural/minimal changes, keeping only functional changes using Claude."""
+def filter_functional_changes(overall_analysis: dict, original_csv_rows: list[dict]) -> dict:
+    """Filter csv_changes to only those representing genuine new testing behavior."""
 
-    # Format the overall analysis for Claude
     analysis_text = json.dumps(overall_analysis, indent=2)
 
-    prompt = f"""You are a regression test pack change analyzer. Your task is to filter the provided overall analysis to keep ONLY functional changes and remove structural/minimal changes.
+    # Build a lookup of original rows by scenario_id so Claude can diff before vs after
+    original_lookup = {row["scenario_id"]: row for row in original_csv_rows}
+    original_lookup_text = json.dumps(original_lookup, indent=2)
 
-## INPUT
-The following is the overall analysis from processing multiple GitHub issues:
+    prompt = (
+        "You are a regression test pack change reviewer. Your task is to filter a list of "
+        "csv_changes down to only those that represent GENUINE NEW TESTING BEHAVIOR.\n\n"
 
-{analysis_text}
+        "## INPUT\n"
+        "The following is the overall analysis from processing multiple GitHub issues:\n\n"
+        + analysis_text + "\n\n"
 
-## YOUR TASK
-Review all csv_changes and filter them to include ONLY:
-- **Functional changes**: Meaningful modifications to test cases that represent actual behavioral changes
-- **Remove**: Structural changes (backfilling new columns, column additions)
-- **Remove**: Minimal changes (only value updates without meaningful test case changes)
-- **Remove**: Rows where fields are only backfilled with empty/default values
+        "## ORIGINAL CSV STATE (before any changes were applied)\n"
+        "This is the state of every test case before this release's changes were made. "
+        "Use this to compare against the modified rows in csv_changes to determine what "
+        "actually changed.\n\n"
+        + original_lookup_text + "\n\n"
 
-## CRITERIA FOR KEEPING A CHANGE:
-1. The change represents a real modification to test case behavior/logic
-2. The change is not just backfilling a new column with empty values
-3. The change actually affects the expected output or test scenario
-4. The change covers specific acceptance criteria from issues
+        "## YOUR TASK\n"
+        "For every entry in csv_changes, compare the new row against the original row "
+        "from the ORIGINAL CSV STATE above. Determine: does this change cause the test "
+        "case to verify something it did not verify before?\n\n"
+        "For INSERT actions there is no original row — evaluate whether the new scenario "
+        "covers an input condition genuinely absent from all existing test cases.\n\n"
 
-## CRITERIA FOR REMOVING A CHANGE:
-1. Pure structural changes (adding columns across all rows)
-2. Backfilling new fields with empty strings ""
-3. No meaningful difference in test case behavior
-4. Changes that are just column additions without functional impact
+        "## DECISION RULE — KEEP OR REMOVE\n\n"
 
-## OUTPUT FORMAT
-Return the filtered analysis with the same JSON structure, but with csv_changes containing ONLY functional changes. Keep all other fields unchanged.
+        "KEEP a change if it meets ANY of the following:\n"
+        "- A field that was empty or absent in the original row now has a meaningful asserted "
+        "value in the new row\n"
+        "- A field that did not exist at all in the original schema is now present and asserted\n"
+        "- The expected_output status changed reflecting a real behavioral difference\n"
+        "- The test case now covers a new input condition or edge case it did not cover before\n"
+        "- A new test case (INSERT) was added to cover a scenario genuinely absent before\n"
+        "- The description was updated to reflect a meaningfully different test purpose\n\n"
 
-{{
-    "analysis_summary": "Filtered summary of functional changes only",
-    "csv_changes": [filtered functional changes only],
-    "xml_changes": [unchanged],
-    "traceability": [unchanged],
-    "new_columns": [unchanged]
-}}
+        "REMOVE a change if ALL of the following are true:\n"
+        "- Every field that changed between the original and new row is a reformatting or "
+        "rewording of an existing value with no change in what is being asserted\n"
+        "- No field that was previously empty now has a meaningful value\n"
+        "- No new field assertions were added beyond what the original row already tested\n"
+        "- The test case is not newly covering any input condition it did not cover before\n\n"
 
-IMPORTANT:
-- Do NOT modify xml_changes, traceability, or new_columns
-- Only filter csv_changes to remove non-functional entries
-- Update analysis_summary to reflect that this is filtered for functional changes only
-- Ensure the JSON is valid and parseable
-"""
+        "## HOW TO EVALUATE EACH CHANGE\n"
+        "For each modify entry in csv_changes:\n"
+        "1. Look up the scenario_id in ORIGINAL CSV STATE to get the original row\n"
+        "2. Compare every field between the original row and the new row in csv_changes\n"
+        "3. For each field that differs, ask: is this a new assertion or just a reformat?\n"
+        "4. If at least one field represents a genuinely new assertion → KEEP\n"
+        "5. If all differing fields are only reformats or cosmetic rewording → REMOVE\n\n"
+
+        "## OUTPUT FORMAT\n"
+        "Return valid JSON only — no markdown, no explanation outside the JSON.\n\n"
+        "{\n"
+        '    "analysis_summary": "Summary covering only the kept functional changes and why they represent genuine new test coverage",\n'
+        '    "csv_changes": [kept changes only],\n'
+        '    "xml_changes": [unchanged from input],\n'
+        '    "traceability": [unchanged from input],\n'
+        '    "new_columns": [unchanged from input]\n'
+        "}\n\n"
+
+        "IMPORTANT:\n"
+        "- Do NOT modify xml_changes, traceability, or new_columns\n"
+        "- Do NOT modify the content of kept csv_changes entries — keep them exactly as-is\n"
+        "- Only filter csv_changes to remove non-behavioral entries\n"
+        "- Update analysis_summary to describe only what was kept and why\n"
+        "- Ensure the JSON is valid and parseable\n"
+        "- Do NOT wrap the JSON in markdown code blocks\n"
+    )
 
     print("Filtering functional changes with Claude...")
+    print(prompt)
     message = anthropic.Anthropic().messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=4096,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}]
     )
 
     response_text = message.content[0].text
     print(f"Filter response received ({len(response_text)} chars)")
 
-    # Parse JSON response
     cleaned = response_text.strip()
     if cleaned.startswith("```json"):
         cleaned = cleaned[7:]
@@ -934,7 +995,6 @@ IMPORTANT:
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse filter response as JSON: {e}")
         print(f"Response text:\n{response_text}")
-        # Return original if parsing fails
         return overall_analysis
 # ─────────────────────────────────────────────
 # Main
@@ -963,6 +1023,7 @@ def main():
 
     # Read current CSV
     csv_rows = read_csv_file(args.csv_file)
+    old_csv_rows = csv_rows.copy()  # Keep a copy of original for comparison
     print(f"Current CSV rows: {len(csv_rows)}")
 
     # Read current XMLs
