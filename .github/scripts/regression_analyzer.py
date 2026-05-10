@@ -130,9 +130,10 @@ You must decide which test cases (CSV rows) need to be MODIFIED, INSERTED, or DE
 7. The `expected_output` column describes what should happen when this trade is processed.
 8. When a test case is modified, update BOTH the CSV row AND the corresponding XML file.
 9. Analyze ALL acceptance criteria from each issue and ensure every AC is covered by at least one test scenario.
-10. **IMPORTANT**: partyAccount1 = buyer account, partyAccount2 = seller account in the system context.
-11. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.
-12. For rejected/failed test cases, the enriched fields are typically empty.
+10. For each issue, generate exactly one unique test case for every acceptance criterion. Do not create duplicate scenarios that cover the same acceptance criterion.
+11. **IMPORTANT**: partyAccount1 = buyer account, partyAccount2 = seller account in the system context.
+12. For valid/enriched test cases, the partyAccount1/2_* fields contain the enriched account details from Account Service.
+13. For rejected/failed test cases, the enriched fields are typically empty.
 
 ## CSV COLUMN STRUCTURE
 The CSV columns are divided into two logical groups:
