@@ -168,7 +168,7 @@ def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, 
         "|    |\n"
         "|    |__ Is the existing test case already testing the new AC (same input condition) ?\n"
         "|        |__ YES -> Update the test scenario description to also mention the incremental AC being covered without updating the csv or the XML input file"
-        "|        |
+        "|        |"
         "|        |__NO-> Does modifying the existing XML give the test case incrementally test new functionality along with the original test scenario? \n"
         "|            ├── YES\n"
         "|            |     └── MODIFY the existing test case (update CSV row + XML if needed)\n"
