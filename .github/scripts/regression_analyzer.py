@@ -170,6 +170,22 @@ the Kafka output should look like after processing.**
 - When adding new columns, backfill ALL existing rows with "" if not applicable.
 - Always declare new columns in the `new_columns` field of your response.
 
+## FIELD CHANGE GUIDELINES
+**For new fields:**
+1. Add new column across all test cases (structural change)
+2. Identify test cases covering acceptance criteria
+3. Modify only those test cases (functional change)
+4. Do not report rows where field is only backfilled
+5. Only create new test cases if existing ones cannot cover acceptance criteria
+
+**For existing fields:**
+1. Prefer modifying existing test cases
+2. Avoid creating new test cases unless absolutely necessary
+
+**Always distinguish:**
+- Structural changes (do not report)
+- Functional changes (report)
+
 ## GITHUB ISSUES TO ANALYZE
 {issues_text}
 
@@ -851,6 +867,88 @@ def generate_md_report(
     report_file.write_text("\n".join(lines), encoding="utf-8")
     print(f"MD report generated: {report_file}")
 # ─────────────────────────────────────────────
+# Filter Functional Changes
+# ─────────────────────────────────────────────
+def filter_functional_changes(overall_analysis: dict) -> dict:
+    """Filter out structural/minimal changes, keeping only functional changes using Claude."""
+
+    # Format the overall analysis for Claude
+    analysis_text = json.dumps(overall_analysis, indent=2)
+
+    prompt = f"""You are a regression test pack change analyzer. Your task is to filter the provided overall analysis to keep ONLY functional changes and remove structural/minimal changes.
+
+## INPUT
+The following is the overall analysis from processing multiple GitHub issues:
+
+{analysis_text}
+
+## YOUR TASK
+Review all csv_changes and filter them to include ONLY:
+- **Functional changes**: Meaningful modifications to test cases that represent actual behavioral changes
+- **Remove**: Structural changes (backfilling new columns, column additions)
+- **Remove**: Minimal changes (only value updates without meaningful test case changes)
+- **Remove**: Rows where fields are only backfilled with empty/default values
+
+## CRITERIA FOR KEEPING A CHANGE:
+1. The change represents a real modification to test case behavior/logic
+2. The change is not just backfilling a new column with empty values
+3. The change actually affects the expected output or test scenario
+4. The change covers specific acceptance criteria from issues
+
+## CRITERIA FOR REMOVING A CHANGE:
+1. Pure structural changes (adding columns across all rows)
+2. Backfilling new fields with empty strings ""
+3. No meaningful difference in test case behavior
+4. Changes that are just column additions without functional impact
+
+## OUTPUT FORMAT
+Return the filtered analysis with the same JSON structure, but with csv_changes containing ONLY functional changes. Keep all other fields unchanged.
+
+{{
+    "analysis_summary": "Filtered summary of functional changes only",
+    "csv_changes": [filtered functional changes only],
+    "xml_changes": [unchanged],
+    "traceability": [unchanged],
+    "new_columns": [unchanged]
+}}
+
+IMPORTANT:
+- Do NOT modify xml_changes, traceability, or new_columns
+- Only filter csv_changes to remove non-functional entries
+- Update analysis_summary to reflect that this is filtered for functional changes only
+- Ensure the JSON is valid and parseable
+"""
+
+    print("Filtering functional changes with Claude...")
+    message = anthropic.Anthropic().messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    response_text = message.content[0].text
+    print(f"Filter response received ({len(response_text)} chars)")
+
+    # Parse JSON response
+    cleaned = response_text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    if cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    try:
+        filtered_analysis = json.loads(cleaned)
+        print(f"Filtered to {len(filtered_analysis.get('csv_changes', []))} functional changes")
+        return filtered_analysis
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse filter response as JSON: {e}")
+        print(f"Response text:\n{response_text}")
+        # Return original if parsing fails
+        return overall_analysis
+# ─────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────
 def main():
@@ -914,7 +1012,7 @@ def main():
             csv_rows, updated_headers = apply_csv_changes(csv_rows, csv_changes, new_columns)
             write_csv_file(args.csv_file, csv_rows, updated_headers)
             csv_rows = read_csv_file(args.csv_file)
-
+            print(updated_headers)
             print(f"  CSV updated: {len(csv_rows)} total rows")
             if new_columns:
                 print(f"  New columns added: {[col['name'] for col in new_columns]}")
@@ -948,7 +1046,16 @@ def main():
     print(f"  Total XML changes: {len(all_xml_changes)}")
     print(f"  Total traceability entries: {len(all_traceability)}")
 
-    # ── Step 3: Generate final report ──
+    # ── Step 3: Filter functional changes ──
+    print("\n" + "─" * 60)
+    print("FILTERING FUNCTIONAL CHANGES")
+    print("─" * 60)
+
+    overall_analysis = filter_functional_changes(overall_analysis)
+
+    print(f"After filtering: {len(overall_analysis.get('csv_changes', []))} functional CSV changes")
+
+    # ── Step 4: Generate final report ──
     print("\n" + "─" * 60)
     print("GENERATING FINAL REPORT")
     print("─" * 60)
