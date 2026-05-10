@@ -105,6 +105,9 @@ def build_prompt(issues: list[dict], csv_rows: list[dict], xml_files: dict[str, 
         issues_text += f"ISSUE #{issue['id']}: {issue['title']}\n"
         issues_text += f"{'='*60}\n"
         issues_text += f"{issue['body']}\n"
+    
+    row_template = {h: "..." for h in headers}
+    row_template_str = json.dumps(row_template, indent=16)
 
     prompt = f"""You are a regression test pack analyzer for a Kafka-based Trade Enrichment System.
 
@@ -204,32 +207,14 @@ Use this exact structure:
 
 {{
     "analysis_summary": "Brief summary of what changes are needed and why",
-    "csv_changes": [
+        "csv_changes": [
         {{
             "action": "modify|insert|delete",
             "scenario_id": "TC-XXX",
-            "reason": "Why this change is needed, referencing the issue and AC",
+            "reason": "...",
             "issue_id": <issue_number>,
-            "row": {{
-                "scenario_id": "TC-XXX",
-                "description": "...",
-                "trade_id": "TRD-XXXX",
-                "tradeId": "TRD-XXXX",
-                "time": "2026-05-05TXX:XX:XXZ",
-                "amount": "...",
-                "partyAccount1": "...",
-                "partyAccount2": "...",
-                "partyAccount1_accountNumber": "...",
-                "partyAccount1_holderName": "...",
-                "partyAccount1_currency": "...",
-                "partyAccount1_branch": "...",
-                "partyAccount2_accountNumber": "...",
-                "partyAccount2_holderName": "...",
-                "partyAccount2_currency": "...",
-                "partyAccount2_branch": "...",
-                "expected_output": "..."
-            }}
-        }}
+            "row": {row_template_str}
+        }}   
     ],
     "xml_changes": [
         {{
