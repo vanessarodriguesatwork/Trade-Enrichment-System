@@ -3,7 +3,7 @@
     {
       "field": "buyerSellerIndicator",
       "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted, blank tag->defaults to B, invalid value->empty string",
-      "issue_id": "1",
+      "issue_id": 1,
       "applies_to": "all_rows"
     },
     {
