@@ -1,0 +1,71 @@
+name: PR Memory Update
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to process"
+        required: true
+        type: string
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+jobs:
+  update-memory:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic requests
+
+      - name: Restore memory cache
+        run: |
+          git fetch origin agent-cache 2>/dev/null || true
+          git checkout origin/agent-cache -- .github/agents/cache/ 2>/dev/null || true
+
+      - name: Run memory update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && '' || github.event.pull_request.merge_commit_sha }}
+          BASE_SHA: ${{ github.event_name == 'workflow_dispatch' && '' || github.event.pull_request.base.sha }}
+        run: python memory_update.py
+        working-directory: .github/agents
+
+      - name: Commit memory cache
+        if: always()
+        run: |
+          mkdir -p /tmp/agent-memory
+          cp -r .github/agents/cache/. /tmp/agent-memory/
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git fetch origin agent-cache 2>/dev/null || true
+
+          if git ls-remote --exit-code origin agent-cache; then
+            git checkout agent-cache
+          else
+            git checkout --orphan agent-cache
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          mkdir -p .github/agents/cache
+          cp -r /tmp/agent-memory/. .github/agents/cache/
+
+          git add .github/agents/cache/
+          git diff --cached --quiet || git commit -m "chore: memory update after PR #${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}"
+          git push origin agent-cache

@@ -7,67 +7,91 @@
 # documentation.
 
 # Enhanced with AI Agent PR Review functionality
-
 name: PR Build for trade-service
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master", "main" ]
 
-    
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: read
 
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-  # Agentic PR Review configuration
-  
   REVIEW_MODEL_PROVIDER: anthropic
   REVIEW_MODEL: claude-opus-4-5
-
   REVIEW_FAIL_ON_SEVERITY: MAJOR
   REVIEW_MAX_FINDINGS: 20
   REVIEW_CONTEXT_MAX_CHARS: 20000
   REVIEW_PATCH_MAX_CHARS: 20000
   REVIEW_MAX_CHANGED_FILES: 20
 
-
-  
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch full history for better analysis
-        
+        fetch-depth: 0
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        
-    - name: Build with Maven
-      run: mvn -f ./trade-service/pom.xml clean test
 
+    - name: Build with Maven
+      run: mvn -f ./trade-service/pom.xml clean test jacoco:report
 
     - name: Install Python dependencies
-      run: pip install "anthropic==0.55.0"
+      run: pip install "anthropic==0.55.0" groq langchain-core langchain-anthropic langchain-groq langsmith
+
+    - name: Restore requirement cache
+      run: |
+        git fetch origin agent-cache 2>/dev/null || true
+        git checkout origin/agent-cache -- .github/agents/cache/ 2>/dev/null || true
 
     - name: Run Agentic PR Review
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      run: python .github/agents/pr_review_agent.py
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        LANGSMITH_TRACING: "true"
+        LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+        LANGSMITH_PROJECT: "trade-service-pr-review"   # optional, defaults to "default"
+        LANGSMITH_ENDPOINT: "https://apac.api.smith.langchain.com"  
+      run: python pr_review_agent.py
+      working-directory: .github/agents
 
+    - name: Commit requirement cache
+      if: always()
+      run: |
+        mkdir -p /tmp/agent-cache
+        cp -r .github/agents/cache/. /tmp/agent-cache/ 2>/dev/null || true
+
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+
+        git fetch origin agent-cache 2>/dev/null || true
+
+        if git ls-remote --exit-code origin agent-cache; then
+          git checkout agent-cache
+        else
+          git checkout --orphan agent-cache
+          git rm -rf . 2>/dev/null || true
+        fi
+
+        mkdir -p .github/agents/cache
+        cp -r /tmp/agent-cache/. .github/agents/cache/ 
+
+        git add .github/agents/cache/
+        git diff --cached --quiet || git commit -m "chore: requirement cache for issue #${{ github.event.pull_request.number }}"
+        git push origin agent-cache
 
          
 

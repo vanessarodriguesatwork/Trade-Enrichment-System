@@ -1,0 +1,35 @@
+name: Invalidate Requirement Cache on Issue Edit
+
+on:
+  issues:
+    types: [edited]
+
+permissions:
+  contents: write
+
+jobs:
+  invalidate-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout agent-cache branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent-cache
+          fetch-depth: 1
+
+      - name: Delete cache file for edited issue
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          CACHE_FILE=".github/agents/cache/requirement_${ISSUE_NUMBER}.json"
+          
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Found cache file: $CACHE_FILE — deleting."
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git rm "$CACHE_FILE"
+            git commit -m "chore: invalidate requirement cache for issue #${ISSUE_NUMBER} (issue edited)"
+            git push origin agent-cache
+          else
+            echo "No cache file found for issue #${ISSUE_NUMBER}, nothing to do."
+          fi
