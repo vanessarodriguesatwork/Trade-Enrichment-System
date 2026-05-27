@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "field": "buyerSellerIndicator",
+      "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted, blank tag->defaults to B, invalid value->empty string",
+      "issue_id": "1",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "amount field in Kafka output must always show exactly 2 decimal places - truncated without rounding for >2 decimals, padded with zeros for <2 decimals, .00 appended for integers",
+      "issue_id": "2",
+      "applies_to": "all_rows"
+    }
+  ],
+  "last_updated_by_issue": "2",
+  "total_rules": 2
+}
