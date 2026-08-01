@@ -278,7 +278,7 @@ IMPORTANT:
 - Do NOT wrap the JSON in markdown code blocks
 """
 
-    llm = _make_llm(max_tokens=8192, label="Claude API Call")
+    llm = _make_llm(max_tokens=20000, label="Claude API Call")
 
     # Build the chat prompt correctly: HumanMessagePromptTemplate wrapping a
     # Jinja2 PromptTemplate so that the JSON blobs in analysis_text and
