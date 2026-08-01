@@ -155,50 +155,23 @@ def call_claude(prompt: str) -> dict:
     
         print("Calling Claude API...")
         response = chain.invoke({"prompt": prompt})
-        
-        print("=" * 80)
-        print("FIRST 3 CONTENT BLOCKS:")
-        for i, block in enumerate(response.content[:3]):
-            print(f"\nBLOCK {i}")
-        
-            if isinstance(block, dict):
-                print("Keys:", list(block.keys()))
-                print("Type:", block.get("type"))
-            else:
-                print("OBJECT TYPE:", type(block))
-            
-                if hasattr(block, "type"):
-                    print("OBJECT BLOCK TYPE:", block.type)
-            
-                if hasattr(block, "text"):
-                    print("TEXT PREVIEW:", repr(block.text[:200]))
-                
-        print("=" * 80)    
-            
+
+
         response_text = response.content
-        if isinstance(response_text, list):
-            parts = []
-
-            for block in response_text:
-                if hasattr(block, "text"):
-                    parts.append(block.text)
-                    
-                elif isinstance(block, dict):
-                    print("DICT TYPE:", block.get("type"))
-                    print("DICT KEYS:", list(block.keys()))
-                    
-                    if "text" in block:
-                        print("TEXT PREVIEW:", repr(block["text"][:200]))    
-                        parts.append(block["text"])
-            
-            response_text = "".join(parts)
-        print(f"Claude response received ({len(response_text)} chars)")
-
-    
-        print("RAW RESPONSE_TEXT:")
-        print(response_text)
         
-        return {}
+        if isinstance(response_text, list):
+            response_text = "".join(
+                block.text if hasattr(block, "text") else block.get("text", "")
+                for block in response_text
+            )
+        
+        print(f"Claude response received ({len(response_text)} chars)")
+        try:
+            return json.loads(_parse_json_response(response_text))
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse Claude response as JSON: {e}")
+            print(f"Response text:\n{response_text}")
+            sys.exit(1)
 
 
 def filter_functional_changes(
