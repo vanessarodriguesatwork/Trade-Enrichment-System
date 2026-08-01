@@ -155,12 +155,14 @@ def call_claude(prompt: str) -> dict:
     
         print("Calling Claude API...")
         response = chain.invoke({"prompt": prompt})
-    
-        print(type(response))
-        print(response)
-        print(type(response.content))
-        print(repr(response.content))
-    
+        
+        print("=" * 80)
+        print("FIRST 3 CONTENT BLOCKS:")
+        for i, block in enumerate(response.content[:3]):
+            print(f"\nBLOCK {i}")
+            print(block)
+        print("=" * 80)
+            
         response_text = response.content
         if isinstance(response_text, list):
             response_text = "".join(
@@ -168,13 +170,12 @@ def call_claude(prompt: str) -> dict:
                 for block in response_text
             )
         print(f"Claude response received ({len(response_text)} chars)")
+
     
-        try:
-            return json.loads(_parse_json_response(response_text))
-        except json.JSONDecodeError as e:
-            print(f"ERROR: Failed to parse Claude response as JSON: {e}")
-            print(f"Response text:\n{response_text}")
-            sys.exit(1)
+        print("RAW RESPONSE_TEXT:")
+        print(response_text)
+        
+        return {}
 
 
 def filter_functional_changes(
