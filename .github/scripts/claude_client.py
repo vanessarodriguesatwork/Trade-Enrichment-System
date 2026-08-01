@@ -272,6 +272,13 @@ IMPORTANT:
     )
 
     response_text = response.content
+
+    if isinstance(response_text, list):
+        response_text = "".join(
+            block.text if hasattr(block, "text") else block.get("text", "")
+            for block in response_text
+        )
+    
     print(f"Filter response received ({len(response_text)} chars)")
 
     try:
