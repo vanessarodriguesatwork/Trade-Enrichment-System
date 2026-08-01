@@ -135,41 +135,46 @@ def _jinja2_chat_prompt(template_str: str, input_variables: list[str]) -> ChatPr
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def call_claude(prompt: str) -> dict:
-    """Send a plain-string prompt to Claude and return the parsed JSON response.
-
-    The prompt is already fully rendered by build_prompt(), so we pass it as
-    a single literal string.  We use Jinja2 here too so that any stray { }
-    characters in the rendered prompt don't confuse LangChain's str_format
-    parser.
-    """
-    llm = _make_llm(max_tokens=10000, label="Claude API Call")
-
-    # Pass the whole prompt as a single Jinja2 variable — safe against any
-    # brace characters that may exist inside the rendered prompt string.
-    chat_prompt = _jinja2_chat_prompt(
-        template_str="{{ prompt }}",
-        input_variables=["prompt"],
-    )
-    chain = chat_prompt | llm
-
-    print("Calling Claude API...")
-    response = chain.invoke({"prompt": prompt})
-
-    response_text = response.content
-    if isinstance(response_text, list):
-        response_text = "".join(
-            block.text if hasattr(block, "text") else block.get("text", "")
-            for block in response_text
+    def call_claude(prompt: str) -> dict:
+        """Send a plain-string prompt to Claude and return the parsed JSON response.
+    
+        The prompt is already fully rendered by build_prompt(), so we pass it as
+        a single literal string.  We use Jinja2 here too so that any stray { }
+        characters in the rendered prompt don't confuse LangChain's str_format
+        parser.
+        """
+        llm = _make_llm(max_tokens=10000, label="Claude API Call")
+    
+        # Pass the whole prompt as a single Jinja2 variable — safe against any
+        # brace characters that may exist inside the rendered prompt string.
+        chat_prompt = _jinja2_chat_prompt(
+            template_str="{{ prompt }}",
+            input_variables=["prompt"],
         )
-    print(f"Claude response received ({len(response_text)} chars)")
-
-    try:
-        return json.loads(_parse_json_response(response_text))
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Claude response as JSON: {e}")
-        print(f"Response text:\n{response_text}")
-        sys.exit(1)
+        chain = chat_prompt | llm
+    
+        print("Calling Claude API...")
+        response = chain.invoke({"prompt": prompt})
+    
+        print(type(response))
+        print(response)
+        print(type(response.content))
+        print(repr(response.content))
+    
+        response_text = response.content
+        if isinstance(response_text, list):
+            response_text = "".join(
+                block.text if hasattr(block, "text") else block.get("text", "")
+                for block in response_text
+            )
+        print(f"Claude response received ({len(response_text)} chars)")
+    
+        try:
+            return json.loads(_parse_json_response(response_text))
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse Claude response as JSON: {e}")
+            print(f"Response text:\n{response_text}")
+            sys.exit(1)
 
 
 def filter_functional_changes(
