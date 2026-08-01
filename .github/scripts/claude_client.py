@@ -143,7 +143,7 @@ def call_claude(prompt: str) -> dict:
         characters in the rendered prompt don't confuse LangChain's str_format
         parser.
         """
-        llm = _make_llm(max_tokens=10000, label="Claude API Call")
+        llm = _make_llm(max_tokens=20000, label="Claude API Call")
     
         # Pass the whole prompt as a single Jinja2 variable — safe against any
         # brace characters that may exist inside the rendered prompt string.
