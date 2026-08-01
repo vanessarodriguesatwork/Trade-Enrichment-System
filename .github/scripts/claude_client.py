@@ -135,7 +135,7 @@ def _jinja2_chat_prompt(template_str: str, input_variables: list[str]) -> ChatPr
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-    def call_claude(prompt: str) -> dict:
+def call_claude(prompt: str) -> dict:
         """Send a plain-string prompt to Claude and return the parsed JSON response.
     
         The prompt is already fully rendered by build_prompt(), so we pass it as
