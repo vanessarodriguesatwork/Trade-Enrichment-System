@@ -157,6 +157,11 @@ def call_claude(prompt: str) -> dict:
     response = chain.invoke({"prompt": prompt})
 
     response_text = response.content
+    if isinstance(response_text, list):
+        response_text = "".join(
+            block.text if hasattr(block, "text") else block.get("text", "")
+            for block in response_text
+        )
     print(f"Claude response received ({len(response_text)} chars)")
 
     try:
