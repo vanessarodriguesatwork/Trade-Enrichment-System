@@ -65,7 +65,7 @@ class TokenTrackerCallback(BaseCallbackHandler):
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
+'''
 def _parse_json_response(response_text: str) -> str:
     """Strip optional markdown fences and return a clean JSON string."""
     cleaned = response_text.strip()
@@ -76,6 +76,32 @@ def _parse_json_response(response_text: str) -> str:
     if cleaned.endswith("```"):
         cleaned = cleaned[:-3]
     return cleaned.strip()
+'''
+
+def _parse_json_response(response_text: str) -> str:
+    cleaned = response_text.strip()
+
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+
+    cleaned = cleaned.strip()
+
+    decoder = json.JSONDecoder()
+
+    start = cleaned.find("{")
+    while start != -1:
+        try:
+            obj, _ = decoder.raw_decode(cleaned[start:])
+            return json.dumps(obj)
+        except json.JSONDecodeError:
+            start = cleaned.find("{", start + 1)
+
+    raise ValueError("No valid JSON object found.")
 
 
 def _make_llm(max_tokens: int, label: str) -> ChatAnthropic:
