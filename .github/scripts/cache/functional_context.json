@@ -35,8 +35,14 @@
       "rule": "The amount field in Kafka output must always show exactly 2 decimal places for successfully enriched/published trades: truncated (not rounded) when input has more than 2 decimals, padded with trailing zeros when input has fewer than 2 decimals, and '.00' appended when input has no decimal places, with sign preserved for negative amounts. This rule applies only to trades actually PUBLISHED to trade-log-topic; rejected/failed trades routed to DLT are not subject to this formatting.",
       "issue_id": "2",
       "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "Amount output for successfully enriched/published trades must always show exactly 2 decimal places: truncate (never round) extra digits beyond 2 decimals, pad with trailing zeros when fewer than 2 decimals are present, append '.00' when no decimal places are present, and preserve the sign for negative amounts. This rule does not apply to rejected/failed trades routed to DLT since no enriched amount is published for them.",
+      "issue_id": "2",
+      "applies_to": "all_rows"
     }
   ],
   "last_updated_by_issue": "2",
-  "total_rules": 6
+  "total_rules": 7
 }
