@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Regression Pack Report — Release 26.02</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f8f9fb;
@@ -17,10 +13,7 @@
             line-height: 1.6;
             padding: 2rem;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1200px; margin: 0 auto; }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -29,11 +22,7 @@
             margin-bottom: 2rem;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
-        .header h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
+        .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
         .header .meta {
             display: flex;
             gap: 2rem;
@@ -41,11 +30,7 @@
             opacity: 0.9;
             margin-top: 0.5rem;
         }
-        .header .meta span {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
+        .header .meta span { display: flex; align-items: center; gap: 0.3rem; }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -60,19 +45,15 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             border-top: 3px solid;
         }
-        .stat-card.issues { border-color: #667eea; }
+        .stat-card.issues  { border-color: #667eea; }
         .stat-card.modified { border-color: #f6ad55; }
         .stat-card.inserted { border-color: #68d391; }
-        .stat-card.deleted { border-color: #fc8181; }
-        .stat-card .number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.2rem;
-        }
-        .stat-card.issues .number { color: #667eea; }
+        .stat-card.deleted  { border-color: #fc8181; }
+        .stat-card .number { font-size: 2rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .stat-card.issues .number   { color: #667eea; }
         .stat-card.modified .number { color: #dd6b20; }
         .stat-card.inserted .number { color: #38a169; }
-        .stat-card.deleted .number { color: #e53e3e; }
+        .stat-card.deleted .number  { color: #e53e3e; }
         .stat-card .label-text {
             font-size: 0.85rem;
             color: #718096;
@@ -102,11 +83,7 @@
             font-size: 0.95rem;
             color: #4a5568;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         th {
             background: #f7fafc;
             padding: 0.75rem 1rem;
@@ -120,9 +97,7 @@
             border-bottom: 1px solid #edf2f7;
             vertical-align: top;
         }
-        tr:hover {
-            background: #f7fafc;
-        }
+        tr:hover { background: #f7fafc; }
         code {
             background: #edf2f7;
             padding: 0.15rem 0.4rem;
@@ -139,22 +114,10 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
         }
-        .badge-modify {
-            background: #fefcbf;
-            color: #975a16;
-        }
-        .badge-insert {
-            background: #c6f6d5;
-            color: #276749;
-        }
-        .badge-delete {
-            background: #fed7d7;
-            color: #9b2c2c;
-        }
-        .badge-create {
-            background: #c6f6d5;
-            color: #276749;
-        }
+        .badge-modify  { background: #fefcbf; color: #975a16; }
+        .badge-insert  { background: #c6f6d5; color: #276749; }
+        .badge-delete  { background: #fed7d7; color: #9b2c2c; }
+        .badge-create  { background: #c6f6d5; color: #276749; }
         .label {
             background: #e2e8f0;
             padding: 0.15rem 0.5rem;
@@ -162,10 +125,7 @@
             font-size: 0.8rem;
             color: #4a5568;
         }
-        .ac-cell {
-            font-size: 0.85rem;
-            line-height: 1.8;
-        }
+        .ac-cell { font-size: 0.85rem; line-height: 1.8; }
         .footer {
             text-align: center;
             margin-top: 2rem;
@@ -181,18 +141,18 @@
             <h1>Regression Pack Analysis Report</h1>
             <p>Release <strong>26.02</strong></p>
             <div class="meta">
-                <span>Generated: 2026-05-09 17:22:01 UTC</span>
-                <span>Analyzer: Claude AI (claude-sonnet-4-20250514)</span>
+                <span>Generated: 2026-08-03 05:03:13 UTC</span>
+                <span>Analyzer: Claude AI (claude-sonnet-5)</span>
             </div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card issues">
-                <div class="number">1</div>
+                <div class="number">2</div>
                 <div class="label-text">Issues Analyzed</div>
             </div>
             <div class="stat-card modified">
-                <div class="number">8</div>
+                <div class="number">7</div>
                 <div class="label-text">Scenarios Modified</div>
             </div>
             <div class="stat-card inserted">
@@ -207,7 +167,7 @@
 
         <div class="section">
             <h2>Analysis Summary</h2>
-            <div class="summary-text">Issue #2 introduces amount truncation rules requiring all trade amounts to be truncated to exactly 2 decimal places without rounding. Need to modify existing test cases to validate truncation behavior and add new test cases for edge cases like padding with zeros and handling various decimal precisions.</div>
+            <div class="summary-text">Kept 11 of 14 csv_changes as genuine new testing behavior. For Issue #1, all 7 modified rows (TC-001, TC-011, TC-016, TC-017, TC-013, TC-018, TC-021) show description changes from their original baseline state, each now explicitly testing a distinct buyerSellerIndicator scenario (valid uppercase BUYER/SELLER, case-insensitive lowercase/mixed-case, missing tag, blank tag default, invalid value) that did not exist in the original test suite - these represent genuine new testing behavior and are kept. For Issue #2, the three global-format-sweep modifications to TC-011, TC-013, and TC-021 were removed: their descriptions are identical to the descriptions already established by the Issue #1 modifications to these same rows (confirmed by their own stated reasons: 'description unchanged... only the amount output value is corrected'), meaning they are pure formatting corrections to already-covered conditions rather than new test scenarios. All 4 inserted rows (TC-022, TC-023, TC-024, TC-025) are kept since inserts always represent new scenarios - covering 4-decimal truncation, 3-decimal truncation boundary (.999 not rounding up), negative-amount truncation with sign preservation, and zero-amount '.00' padding, none of which existed previously.</div>
         </div>
 
         <div class="section">
@@ -221,13 +181,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
+        <tr>
+            <td><strong>#1</strong></td>
+            <td>Add Buyer/Seller Indicator (B/S) to Enriched Trade Output</td>
+            <td><span class="label">—</span></td>
+        </tr>
         <tr>
             <td><strong>#2</strong></td>
             <td>Add Amount Truncation for Trade Amount Precision</td>
             <td><span class="label">—</span></td>
-        </tr>
-                </tbody>
+        </tr></tbody>
             </table>
         </div>
 
@@ -243,80 +206,72 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
         <tr>
             <td><span class="badge badge-modify">MODIFY</span></td>
             <td><code>TC-001</code></td>
-            <td>#2</td>
-            <td>Update expected output amount to show exact 2 decimal places formatting as per AC2</td>
-        </tr>
-        <tr>
-            <td><span class="badge badge-modify">MODIFY</span></td>
-            <td><code>TC-006</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 4500.5 to 4500.50 as per AC2 requiring exactly 2 decimal places</td>
-        </tr>
-        <tr>
-            <td><span class="badge badge-modify">MODIFY</span></td>
-            <td><code>TC-008</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 4500.50 to match truncated input from 4500.5 as per AC2</td>
-        </tr>
-        <tr>
-            <td><span class="badge badge-modify">MODIFY</span></td>
-            <td><code>TC-009</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 2200.00 to match padded input from 2200 as per AC5</td>
+            <td>#1</td>
+            <td>Reused this published, fully-enriched test case to also cover AC2/AC8#1: valid uppercase BUYER indicator converts to 'B'. XML modified to add the tag; original amount/account assertions unaffected.</td>
         </tr>
         <tr>
             <td><span class="badge badge-modify">MODIFY</span></td>
             <td><code>TC-011</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 1100.00 to match padded input from 1100 as per AC5</td>
+            <td>#1</td>
+            <td>Reused this published mandatory-fields test case to cover AC2/AC8#2: valid uppercase SELLER indicator converts to 'S'. XML modified to add the tag; original structural assertion preserved.</td>
         </tr>
         <tr>
             <td><span class="badge badge-modify">MODIFY</span></td>
-            <td><code>TC-013</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 900.00 to match padded input from 900 as per AC5</td>
+            <td><code>TC-016</code></td>
+            <td>#1</td>
+            <td>Reused this high-amount published test case to cover AC3/AC8#3: lowercase 'buyer' value is case-insensitively converted to 'B'. XML modified to add the tag; original amount assertion preserved.</td>
         </tr>
         <tr>
             <td><span class="badge badge-modify">MODIFY</span></td>
             <td><code>TC-017</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 3300.00 to match padded input from 3300 as per AC5</td>
+            <td>#1</td>
+            <td>Reused this minimum-amount published test case to cover AC3/AC8#4: mixed-case 'Seller' value is case-insensitively converted to 'S'. XML modified to add the tag; original amount assertion preserved.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-013</code></td>
+            <td>#1</td>
+            <td>Reused this consumer-recovery published test case to cover AC5/AC8#6: a blank/empty buyerSellerIndicator tag defaults to 'B' with a warning logged. XML modified to add the empty tag; original consumer-recovery assertion preserved.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TC-018</code></td>
+            <td>#1</td>
+            <td>This existing published test case already had no buyerSellerIndicator tag in its XML, naturally satisfying AC4/AC8#5 (missing tag). Per decision-tree guidance, only the description/expected_output was updated to call out this incremental coverage; no XML or value change was needed since the field is correctly omitted (represented as blank in CSV).</td>
         </tr>
         <tr>
             <td><span class="badge badge-modify">MODIFY</span></td>
             <td><code>TC-021</code></td>
-            <td>#2</td>
-            <td>Update expected output amount from 2800.50 to match padded input from 2800.5 as per AC4</td>
+            <td>#1</td>
+            <td>This placeholder row ('buyerSellerIndicator field is string type not boolean or enum') was intended for this feature but had no tag and an empty expected_output. Completed it to cover AC6/AC8#7: an invalid value (UNKNOWN) results in an empty string field with a warning logged, and processing does not fail.</td>
         </tr>
         <tr>
             <td><span class="badge badge-insert">INSERT</span></td>
             <td><code>TC-022</code></td>
             <td>#2</td>
-            <td>Test AC1 and AC6 - truncation of amounts with more than 2 decimal places without rounding</td>
+            <td>Checked all existing XMLs for a PUBLISHED trade with amount containing more than 2 decimal places to test AC3 (truncation without rounding). TRD-0019.xml already exists in the trades directory (amount=15000.9876) but has no corresponding CSV row - it matches the exact example given in the issue. No existing referenced test case covers a 4-decimal-place truncation scenario, so this row is inserted reusing the pre-existing XML rather than creating a new file.</td>
         </tr>
         <tr>
             <td><span class="badge badge-insert">INSERT</span></td>
             <td><code>TC-023</code></td>
             <td>#2</td>
-            <td>Test AC3 and AC6 - truncation should not round 125.999 to 126.00 but truncate to 125.99</td>
+            <td>Checked all existing XMLs for a PUBLISHED trade with amount containing exactly 3 decimal places to further validate AC3 (truncate only, no rounding, e.g. .999 must not round up to next whole number). TRD-0020.xml already exists (amount=125.999) matching the issue's own example table but has no CSV row referencing it. No existing test case covers this 3-decimal truncation boundary, so a new row is inserted reusing the existing XML.</td>
         </tr>
         <tr>
             <td><span class="badge badge-insert">INSERT</span></td>
             <td><code>TC-024</code></td>
             <td>#2</td>
-            <td>Test AC8 - negative amounts should be handled consistently with truncation rules</td>
+            <td>Checked all existing XMLs for a PUBLISHED negative-amount trade with more than 2 decimal places to verify sign preservation during truncation (AC3 extension). TRD-0021.xml already exists (amount=-1234.5678) but has no CSV row referencing it. No existing test case covers a negative amount with truncation, so a new row is inserted reusing the existing XML.</td>
         </tr>
         <tr>
             <td><span class="badge badge-insert">INSERT</span></td>
             <td><code>TC-025</code></td>
             <td>#2</td>
-            <td>Test AC8 - zero amount should be formatted to 0.00 as per AC5</td>
-        </tr>
-                </tbody>
+            <td>Checked all existing XMLs for a PUBLISHED trade with a zero/whole-number amount to validate AC4 (append '.00' when no decimal places present) as a distinct boundary value from TC-011/TC-013. TRD-0022.xml already exists (amount=0) but has no CSV row referencing it. No existing test covers the zero-amount edge case, so a new row is inserted reusing the existing XML.</td>
+        </tr></tbody>
             </table>
         </div>
 
@@ -331,28 +286,36 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
         <tr>
-            <td><span class="badge badge-create">CREATE</span></td>
-            <td><code>TRD-0019.xml</code></td>
-            <td>New test case for amount truncation with multiple decimal places</td>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0001.xml</code></td>
+            <td>Added buyerSellerIndicator=BUYER (uppercase) to cover AC2/AC8#1 valid uppercase conversion to 'B', reusing this existing published test case.</td>
         </tr>
         <tr>
-            <td><span class="badge badge-create">CREATE</span></td>
-            <td><code>TRD-0020.xml</code></td>
-            <td>New test case for verifying no rounding occurs during truncation</td>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0009.xml</code></td>
+            <td>Added buyerSellerIndicator=SELLER (uppercase) to cover AC2/AC8#2 valid uppercase conversion to 'S', reusing this existing published test case.</td>
         </tr>
         <tr>
-            <td><span class="badge badge-create">CREATE</span></td>
-            <td><code>TRD-0021.xml</code></td>
-            <td>New test case for negative amount truncation</td>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0014.xml</code></td>
+            <td>Added buyerSellerIndicator=buyer (lowercase) to cover AC3/AC8#3 case-insensitive conversion to 'B', reusing this existing published test case.</td>
         </tr>
         <tr>
-            <td><span class="badge badge-create">CREATE</span></td>
-            <td><code>TRD-0022.xml</code></td>
-            <td>New test case for zero amount formatting</td>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0015.xml</code></td>
+            <td>Added buyerSellerIndicator=Seller (mixed case) to cover AC3/AC8#4 case-insensitive conversion to 'S', reusing this existing published test case.</td>
         </tr>
-                </tbody>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0011.xml</code></td>
+            <td>Added an empty buyerSellerIndicator tag to cover AC5/AC8#6 blank-tag default to 'B' with warning, reusing this existing published test case.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-modify">MODIFY</span></td>
+            <td><code>TRD-0018.xml</code></td>
+            <td>Added buyerSellerIndicator=UNKNOWN (invalid value) to cover AC6/AC8#7 invalid value producing empty string output with warning, completing this previously incomplete placeholder test case.</td>
+        </tr></tbody>
             </table>
         </div>
 
@@ -369,15 +332,20 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
+        <tr>
+            <td><strong>#1</strong></td>
+            <td>Add Buyer/Seller Indicator (B/S) to Enriched Trade Output</td>
+            <td class="ac-cell">AC1: System identifies buyer/seller role via buyerSellerIndicator field<br>AC2: Valid BUYER->B, SELLER->S in enriched output<br>AC3: Case-insensitive input handling<br>AC4: Missing tag -> field omitted, warning logged<br>AC5: Blank tag -> defaults to 'B', warning logged<br>AC6: Invalid value -> empty string, warning logged<br>AC7: Processing must not fail on missing/blank/invalid value<br>AC8: Business scenario matrix (7 scenarios) verifiable</td>
+            <td><code>TC-001</code>, <code>TC-011</code>, <code>TC-016</code>, <code>TC-017</code>, <code>TC-013</code>, <code>TC-018</code>, <code>TC-021</code></td>
+            <td>AC1/AC2/AC3 covered by TC-001 (BUYER uppercase->B), TC-011 (SELLER uppercase->S), TC-016 (buyer lowercase->B), TC-017 (Seller mixed case->S). AC4 covered by TC-018 which already had no buyerSellerIndicator tag - only description/expected_output updated per decision-tree rule for already-matching input conditions, no XML/value change needed. AC5 covered by TC-013 with an empty tag added, defaulting to 'B'. AC6 covered by TC-021 (previously an incomplete placeholder row) with an invalid 'UNKNOWN' value producing an empty string. AC7 is implicitly validated across TC-013/TC-018/TC-021 since all three remain successfully PUBLISHED despite blank/missing/invalid indicator values. All 7 scenarios in AC8's matrix are covered by these 7 modified test cases; no inserts were necessary since sufficient distinct published test cases existed to host each unique input condition without conflicting with their pre-existing assertions.</td>
+        </tr>
         <tr>
             <td><strong>#2</strong></td>
             <td>Add Amount Truncation for Trade Amount Precision</td>
-            <td class="ac-cell">AC1: The system shall truncate incoming trade amounts to a maximum of two decimal places<br>AC2: The system shall always format the final output to exactly two decimal places<br>AC3: No rounding shall be applied under any circumstance<br>AC4: If the input has fewer than 2 decimal places, the system shall pad with trailing zeros<br>AC5: If the input has no decimal places, the system shall append .00<br>AC6: If the input has more than 2 decimal places, all extra digits shall be discarded after truncation<br>AC7: The formatting shall be consistent across all enriched trade outputs and downstream systems<br>AC8: The system shall support positive, zero, and negative numeric values consistently</td>
-            <td><code>TC-001</code>, <code>TC-006</code>, <code>TC-008</code>, <code>TC-009</code>, <code>TC-011</code>, <code>TC-013</code>, <code>TC-020</code>, <code>TC-021</code>, <code>TC-022</code>, <code>TC-023</code>, <code>TC-024</code>, <code>TC-025</code></td>
-            <td>AC1&AC6 covered by TC-022,TC-023 (truncation); AC2&AC7 covered by all modified scenarios (exact 2 decimal format); AC3 covered by TC-023 (no rounding); AC4 covered by existing scenarios with 1 decimal; AC5 covered by TC-009,TC-011,TC-013,TC-020,TC-025 (padding zeros); AC8 covered by TC-024 (negative) and TC-025 (zero)</td>
-        </tr>
-                </tbody>
+            <td class="ac-cell">AC1: The system shall always format the final output to exactly two decimal places without rounding.<br>AC2: If the input has fewer than 2 decimal places, the system shall pad with trailing zeros.<br>AC3: If the input has more than 2 decimal places, all extra digits shall be discarded after truncation with no rounding.<br>AC4: If the input has no decimal places, the system shall append '.00' to ensure 2 decimal places.</td>
+            <td><code>TC-001</code>, <code>TC-011</code>, <code>TC-013</code>, <code>TC-016</code>, <code>TC-017</code>, <code>TC-018</code>, <code>TC-021</code>, <code>TC-022</code>, <code>TC-023</code>, <code>TC-024</code>, <code>TC-025</code></td>
+            <td>AC1 (always 2 decimal places) is broadly validated across all published rows (TC-001,011,013,016,017,018,021-025). AC2 (padding fewer decimals) is covered by TC-021 (2800.5->2800.50, 1 decimal padded). AC3 (truncate more than 2 decimals, no rounding) is covered by new TC-022 (4 decimals) and TC-023 (3 decimals, verifying .999 does not round up) plus negative-sign variant TC-024. AC4 (append .00 for whole numbers) is covered by TC-011 and TC-013 (existing published rows corrected) and reinforced by new zero-value edge case TC-025. Existing published rows with non-conforming amount format (TC-011, TC-013, TC-021) were corrected via global format sweep per issue rules rather than treated as new scenarios. Orphaned XML files TRD-0019/0020/0021/0022 (already present in the trades directory matching this issue's exact examples) were linked to new CSV rows instead of creating additional XML files.</td>
+        </tr></tbody>
             </table>
         </div>
 
