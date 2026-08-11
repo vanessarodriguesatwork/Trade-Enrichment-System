@@ -1,0 +1,54 @@
+{
+  "rules": [
+    {
+      "field": "buyerSellerIndicator",
+      "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted, blank tag->defaults to B, invalid value->empty string",
+      "issue_id": "1",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "amount field in Kafka output must always show exactly 2 decimal places - truncated without rounding for >2 decimals, padded with zeros for <2 decimals, .00 appended for integers",
+      "issue_id": "2",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "buyerSellerIndicator",
+      "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted (with warning), blank tag->defaults to B (with warning), invalid value->empty string (with warning). Processing must not fail due to missing/blank/invalid value.",
+      "issue_id": "1",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "The amount field in Kafka output must always show exactly 2 decimal places for successfully enriched/published trades: truncated (not rounded) when input has more than 2 decimals, padded with trailing zeros when input has fewer than 2 decimals, and '.00' appended when input has no decimal places. This rule applies only to trades that are actually PUBLISHED to trade-log-topic; rejected/failed trades routed to DLT are not subject to this output formatting since no enriched amount is published.",
+      "issue_id": "2",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "buyerSellerIndicator",
+      "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted entirely (with warning logged), blank tag->defaults to B (with warning logged), invalid value->empty string (with warning logged). Processing must not fail due to missing/blank/invalid value.",
+      "issue_id": "1",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "The amount field in Kafka output must always show exactly 2 decimal places for successfully enriched/published trades: truncated (not rounded) when input has more than 2 decimals, padded with trailing zeros when input has fewer than 2 decimals, and '.00' appended when input has no decimal places, with sign preserved for negative amounts. This rule applies only to trades actually PUBLISHED to trade-log-topic; rejected/failed trades routed to DLT are not subject to this formatting.",
+      "issue_id": "2",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "amount",
+      "rule": "Amount output for successfully enriched/published trades must always show exactly 2 decimal places: truncate (never round) extra digits beyond 2 decimals, pad with trailing zeros when fewer than 2 decimals are present, append '.00' when no decimal places are present, and preserve the sign for negative amounts. This rule does not apply to rejected/failed trades routed to DLT since no enriched amount is published for them.",
+      "issue_id": "2",
+      "applies_to": "all_rows"
+    },
+    {
+      "field": "buyerSellerIndicator",
+      "rule": "buyerSellerIndicator field in Kafka output: BUYER->B, SELLER->S (case-insensitive input), missing tag->field omitted entirely from output (with warning logged), blank tag->defaults to 'B' (with warning logged), invalid value->empty string (with warning logged). Processing must not fail due to missing, blank, or invalid buyerSellerIndicator value.",
+      "issue_id": "1",
+      "applies_to": "all_rows"
+    }
+  ],
+  "last_updated_by_issue": "2",
+  "total_rules": 8
+}
