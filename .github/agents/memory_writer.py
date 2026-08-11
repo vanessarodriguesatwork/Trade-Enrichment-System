@@ -10,8 +10,6 @@ def _candidate_path(pr_number: int) -> Path:
     """Returns the candidate file path for a specific PR."""
     return _BASE / "cache" / "candidate" / f"agent_memory_{pr_number}.json"
 
-
-
 def save_pending_findings(pr_number: int, findings: list[dict]) -> None:
     """
     Saves normalized findings to a PR-specific candidate file.

@@ -19,7 +19,7 @@ import anthropic
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+ANTHROPIC_MODEL = "claude-sonnet-5"
 
 _BASE = Path(__file__).parent
 MEMORY_FILE    = _BASE / "cache" / "memory" / "agent_memory.json"

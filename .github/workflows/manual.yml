@@ -225,8 +225,16 @@ jobs:
         id: commit
         run: |
           LATEST_TAG="${{ steps.tags.outputs.latest_tag }}"
-          BRANCH_NAME="regression/$LATEST_TAG"
+          BASE_BRANCH_NAME="regression/$LATEST_TAG"
+          BRANCH_NAME="$BASE_BRANCH_NAME"
+          SUFFIX=1
+          git fetch origin
+          while git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; do
+            BRANCH_NAME="${BASE_BRANCH_NAME}/${SUFFIX}"
+            SUFFIX=$((SUFFIX + 1))
+          done
 
+          echo "Using branch: $BRANCH_NAME"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
