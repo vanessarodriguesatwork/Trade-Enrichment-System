@@ -40,7 +40,7 @@
       "field": "amount",
       "rule": "Amount output for successfully enriched/published trades must always show exactly 2 decimal places: truncate (never round) extra digits beyond 2 decimals, pad with trailing zeros when fewer than 2 decimals are present, append '.00' when no decimal places are present, and preserve the sign for negative amounts. This rule does not apply to rejected/failed trades routed to DLT since no enriched amount is published for them.",
       "issue_id": "2",
-      "applies_to": "all_rows"
+      "applies_to": "specific_outcome"
     },
     {
       "field": "buyerSellerIndicator",
