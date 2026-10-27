@@ -4,4 +4,5 @@
     <amount>1250.75</amount>
     <partyAccount1>ACC-143</partyAccount1>
     <partyAccount2>ACC-244</partyAccount2>
+    <buyerSellerIndicator>UNKNOWN</buyerSellerIndicator>
 </trade>
